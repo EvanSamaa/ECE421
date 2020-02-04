@@ -45,6 +45,8 @@ def compute_accuracy(W, b, x, y):
     except:
         print("nothing")
     output = x.dot(W) + b
+    # print(output.tolist())
+    # A[2]
     output = np.where(output >= 0.5, 1, 0).squeeze()
     accuracy = np.where(output == y.squeeze(), 1, 0).sum()
     return accuracy/output.shape[0]
@@ -58,7 +60,7 @@ def plot_trend(list_of_data, data_names = ["Train", "Validation", "Test"], data_
     plt.legend()
     plt.savefig(data_title + ".png")
     plt.show()
-def grad_descent(W, b, x, y, alpha, epochs, reg, error_tol = 0.0000001, val_data = [], test_data = []):
+def grad_descent(W, b, x, y, alpha, epochs, reg, error_tol = 0, val_data = [], test_data = []):
     # initialize storage elements
     error_train = []
     acc_train = []
@@ -119,19 +121,18 @@ def buildGraph(loss="MSE"):
 
 trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
 # print(trainData.shape) # (num of item, length, width)
-W = np.random.randint(1, size=(28*28, ))
+np.random.seed(20)
 W = np.random.random((28*28, ))
-b = 0.5
+b = 0
 reg = 0.5
 W_ana, b_ana = MSE_normalEQ(W, b, trainData, trainTarget)
 print(compute_accuracy(W_ana, b_ana, trainData, trainTarget))
 print(MSE(W_ana, b_ana, trainData, trainTarget, 0))
 W = np.random.randint(1, size=(28*28, ))
 b = 0.5
-W, b = grad_descent(W, b, trainData, trainTarget, 0.0005, 500, reg, error_tol = 0.0000001, val_data = [validData, validTarget], test_data=[testData, testTarget])
+W, b = grad_descent(W, b, trainData, trainTarget, 0.00005, 100, reg, error_tol = 0.0000001, val_data = [validData, validTarget], test_data=[testData, testTarget])
 print(compute_accuracy(W, b, trainData, trainTarget))
 print(MSE(W, b, trainData, trainTarget, 0))
-
 
 # for reg in [0.001, 0.1, 0.5]:
 #     W = np.random.randint(1, size=(28 * 28,))
