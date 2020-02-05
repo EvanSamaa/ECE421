@@ -3,6 +3,7 @@ import numpy as np
 from numpy.linalg import inv
 import matplotlib.pyplot as plt
 import time
+import torch
 
 
 def loadData():
@@ -102,7 +103,7 @@ def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_ti
     plt.legend()
     plt.savefig(data_title + ".png")
     plt.show()
-    
+
 def grad_descent(W, b, x, y, alpha, epochs, reg, error_tol=0.0000001, val_data=[], test_data=[], lossType='MSE'):
     # initialize storage elements
     error_train = []
@@ -154,17 +155,40 @@ def MSE_normalEQ(W, b, x, y):
     return W, b
 
 
+def truncatedNormal(input_tensor, mean, std):
+    for i in range (0, input_tensor.size()[0]):
+        for j in range (0, input_tensor.size()[1]):
+            num = np.random.normal(mean, std)
+            while np.abs(num - mean) > 2 * std:
+                num = np.random.normal(mean, std)
+            input_tensor[i][j] = num
+    print(input_tensor.mean())
+    print(input_tensor.std())
+    return input_tensor
+
+
+# this is done in pytorch so it does not need placeholders
 def buildGraph(loss="MSE"):
     # Initialize weight and bias tensors
-    # tf.set_random_seed(421)
-    # if loss == "MSE":
-    #     b = 3
-    # elif loss == "CE":
-    #     a = 2
-    pass
+    torch.manual_seed(421)
+    weights = torch.rand((28*28, 1))
+    weights = truncatedNormal(weights, weights.mean(), 0.5)
+    bias = torch.rand((1,1))
+    loss_func = None
+    if loss == "MSE":
+        loss_func = torch.nn.MSELoss()
+    elif loss == "CE":
+        loss_func = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD([weights, bias] , lr=0.001, weight_decay=0)
+    return weights, bias, optimizer
+
 
 
 trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+
+buildGraph()
+
+A[2]
 # print(trainData.shape) # (num of item, length, width)
 np.random.seed(20)
 W = np.random.random((28*28, ))
