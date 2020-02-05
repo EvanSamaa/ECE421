@@ -54,10 +54,9 @@ def CrossEntropyLoss(w, b, x, y, reg):
     N = x.shape[0]
     d = x.shape[1]
     I = np.ones(N,)
-    y_est = x.dot(w) + b * I
-    #loss = np.average(y*np.log(1+np.exp(-y_est))+(1-y)*np.log(1+np.exp(y_est))) + reg / 2 * np.linalg.norm(w)
-    loss = np.average(np.log(1+np.exp(-y*y_est)))
-    pass
+    #print(w.shape,np.array([b]).shape)
+    y_est = x.dot(w) + b * I#loss = np.average(y*np.log(1+np.exp(-y_est))+(1-y)*np.log(1+np.exp(y_est))) + reg / 2 * np.linalg.norm(w)
+    loss = np.average(np.log(1+np.exp(-y*y_est)))+reg*np.linalg.norm(np.concatenate((w.reshape(-1,1),np.array([b]).reshape(-1,1))))
     return loss
 
 
@@ -73,9 +72,9 @@ def gradCE(w, b, x, y, reg):
     grad = -y / (1 + np.exp(y_est * y))
     grad = np.array([grad]).T
     w_grad = grad * x
-    w_grad = np.average(w_grad,0)
+    w_grad = np.average(w_grad,0) + reg*w
     b_grad = grad
-    b_grad = np.average(b_grad,0)
+    b_grad = np.average(b_grad,0) + reg*b
     return b_grad,w_grad
 
 
@@ -168,19 +167,31 @@ trainData, validData, testData, trainTarget, validTarget, testTarget = loadData(
 W = np.random.randint(1, size=(28 * 28,))
 W = np.random.random((28 * 28,))
 b = 0.5
-reg = 0.1
+reg = 0
+epoch = 100
 lossType='CE'
 lossTypeDic={'MSE':gradMSE, 'CE':gradCE}
+errorTypeDic = {'MSE': MSE, 'CE': CrossEntropyLoss}
 loss_func=lossTypeDic[lossType]
+error_func=errorTypeDic[lossType]
 W_ana, b_ana = MSE_normalEQ(W, b, trainData, trainTarget)
 print(compute_accuracy(W_ana, b_ana, trainData, trainTarget))
-print(loss_func(W_ana, b_ana, trainData, trainTarget, 0))
+print(MSE(W_ana, b_ana, trainData, trainTarget, 0))
 W = np.random.randint(1, size=(28 * 28,))
 b = 0.5
-W, b = grad_descent(W, b, trainData, trainTarget, 0.0005, 5000, reg, error_tol=0.0000001,
-                    val_data=[validData, validTarget], test_data=[testData, testTarget],lossType='CE')
+W, b = grad_descent(W, b, trainData, trainTarget, 0.005, epoch, reg, error_tol=0.0000001,
+                    val_data=[validData, validTarget], test_data=[testData, testTarget],lossType=lossType)
 print(compute_accuracy(W, b, trainData, trainTarget))
-print(CrossEntropyLoss(W, b, trainData, trainTarget, 0))
+print(error_func(W, b, trainData, trainTarget, 0))
+lossType="MSE"
+loss_func=lossTypeDic[lossType]
+error_func=errorTypeDic[lossType]
+W = np.random.randint(1, size=(28 * 28,))
+b = 0.5
+W, b = grad_descent(W, b, trainData, trainTarget, 0.005, epoch, reg, error_tol=0.0000001,
+                    val_data=[validData, validTarget], test_data=[testData, testTarget],lossType=lossType)
+print(compute_accuracy(W, b, trainData, trainTarget))
+print(error_func(W, b, trainData, trainTarget, 0))
 
 # for reg in [0.001, 0.1, 0.5]:
 #     W = np.random.randint(1, size=(28 * 28,))
