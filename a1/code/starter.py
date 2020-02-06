@@ -170,19 +170,12 @@ def truncatedNormal(input_tensor, mean, std):
 # this is done in pytorch so it does not need placeholders
 def buildGraph(loss="MSE"):
     # Initialize weight and bias tensors
-    torch.manual_seed(421)
-    weights = torch.rand((28*28, 1))
-    weights = truncatedNormal(weights, weights.mean(), 0.5)
-    bias = torch.rand((1,1))
-    loss_func = None
+    tf.random.set_seed(421)
     if loss == "MSE":
         loss_func = torch.nn.MSELoss()
     elif loss == "CE":
         loss_func = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD([weights, bias] , lr=0.001, weight_decay=0)
     return weights, bias, optimizer
-
-
 
 trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
 
