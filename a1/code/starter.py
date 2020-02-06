@@ -155,11 +155,11 @@ def MSE_normalEQ(W, b, x, y):
 
 def buildGraph(loss="MSE"):
     # Initialize weight and bias tensors
-    # tf.set_random_seed(421)
-    # if loss == "MSE":
-    #     b = 3
-    # elif loss == "CE":
-    #     a = 2
+    tf.set_random_seed(421)
+    if loss == "MSE":
+        b = 3
+    elif loss == "CE":
+        a = 2
     pass
 
 
