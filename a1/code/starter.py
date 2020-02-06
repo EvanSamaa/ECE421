@@ -163,11 +163,12 @@ def grad_descent(W, b, x, y, alpha, epochs, reg, error_tol=0.0000001, val_data=[
         acc_valid.append(compute_accuracy(W, b, val_data[0], val_data[1]))
         acc_test.append(compute_accuracy(W, b, test_data[0], test_data[1]))
         # adjust the weight and biases
+        old_w=np.concatenate((W.reshape(-1,1),np.array([b]).reshape(-1,1)))
         W = W - alpha * W_grad
         b = b - alpha * b_grad
         # stop the training loop if the error is lower than the error_tolerance
         #print("Epoch error ", epoch_error)
-        if epoch_error <= error_tol:
+        if np.abs(np.linalg.norm(old_w)-np.linalg.norm(np.concatenate((W.reshape(-1,1),np.array([b]).reshape(-1,1))))) <= error_tol:
             break
     plot_trend([error_train, error_valid, error_test],
                data_title="Loss of Train, Validation and Test Data with alpha = 0.0001, lambda = 0",
