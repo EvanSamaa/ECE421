@@ -127,11 +127,12 @@ def grad_descent(W, b, x, y, alpha, epochs, reg, error_tol=0.0000001, val_data=[
         acc_valid.append(compute_accuracy(W, b, val_data[0], val_data[1]))
         acc_test.append(compute_accuracy(W, b, test_data[0], test_data[1]))
         # adjust the weight and biases
+        old_w=np.concatenate((W.reshape(-1,1),np.array([b]).reshape(-1,1)))
         W = W - alpha * W_grad
         b = b - alpha * b_grad
         # stop the training loop if the error is lower than the error_tolerance
         #print("Epoch error ", epoch_error)
-        if epoch_error <= error_tol:
+        if np.abs(np.linalg.norm(old_w)-np.linalg.norm(np.concatenate((W.reshape(-1,1),np.array([b]).reshape(-1,1))))) <= error_tol:
             break
     plot_trend([error_train, error_valid, error_test],
                data_title="Loss of Train, Validation and Test Data with alpha = 0.0005, lambda = 0.5", y_label="Loss")
@@ -167,8 +168,8 @@ trainData, validData, testData, trainTarget, validTarget, testTarget = loadData(
 W = np.random.randint(1, size=(28 * 28,))
 W = np.random.random((28 * 28,))
 b = 0.5
-reg = 0
-epoch = 100
+reg = 0.5
+epoch = 5000
 lossType='CE'
 lossTypeDic={'MSE':gradMSE, 'CE':gradCE}
 errorTypeDic = {'MSE': MSE, 'CE': CrossEntropyLoss}
