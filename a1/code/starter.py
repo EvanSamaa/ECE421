@@ -9,27 +9,20 @@ class Dataset(torch.utils.data.Dataset):
         'Initialization'
         self.labels = labels
         self.data = data.reshape((data.shape[0], data.shape[1]*data.shape[1]))
-        self.data = np.concatenate((np.ones((self.data.shape[0], 1)), self.data), axis=1)
+
     def __len__(self):
         'Denotes the total number of samples'
         return len(self.labels)
     def __getitem__(self, index):
-        'Generates one sample of data'
-        # Select sample
-        ID = self.labels[index]
-        # Load data and get label
-        X = self.data[ID]
-        y = self.labels[ID]
-        return X, y
-    def obtain_np_data(self):
-        return self.data, self.labels
+        feature = self.data[index]
+        label = self.labels[index]
+        return feature, label
 
 class Prceptron(torch.nn.Module):
     def __init__(self, input_size, neuronCount=1, weight=None):
         super(Prceptron, self).__init__()
-        self.fc1 = torch.nn.Linear(input_size, neuronCount, bias=False)
-        if weight != None:
-            self.fc1.weight.data = weight.transpose(1,0)
+        self.fc1 = torch.nn.Linear(input_size, neuronCount, bias=True)
+
     def forward(self, features):
         x = self.fc1(features)
         return x
@@ -110,44 +103,22 @@ def gradCE(w, b, x, y, reg):
     b_grad = np.average(b_grad,0) + reg*b
     return b_grad,w_grad
 
-def compute_loss_with_tensor(weight, dataSet, loss_func):
-    temp_loader = torch.utils.data.DataLoader(dataSet, batch_size=len(dataSet), shuffle=True)
-    for i, batch in enumerate(temp_loader):
-        data, batch_label = batch
-        data = data.squeeze().float()
-        label = batch_label.squeeze().float()
-        result = torch.mm(data, weight)
-        loss = loss_func(result, label).item()
-        # print(loss)
-        return loss
-def evaluate(model, val_loader):
-    total_corr = 0
-    for i, batch in enumerate(val_loader):
-        data, label = batch
-        data = data.type(torch.FloatTensor)
-        prediction = model(data)
-        print(prediction)
-        for j in range(0, len(prediction)):
-            if label[j] == 1:
-                if prediction[j] > 0.5:
-                    total_corr = total_corr + 1
-            elif label[j] == 0:
-                if prediction[j] < 0.5:
-                    total_corr = total_corr + 1
-    # print(float(total_corr)/len(val_loader.dataset))
-    return float(total_corr)/len(val_loader.dataset)
-# def compute_accuracy_with_tensor(weight, dataSet):
-#     temp_loader = torch.utils.data.DataLoader(dataSet, batch_size=len(dataSet), shuffle=True)
-#     for i, batch in enumerate(temp_loader):
-#         data, batch_label = batch
-#         data = data.squeeze().float()
-#         label = batch_label.squeeze().float()
-#         result = (torch.mm(data, weight))
-#         # print(result)
-#         result = np.where(result >= 0.5, 1, 0).squeeze()
-#         accuracy = np.where(result == label.numpy(), 1, 0).sum()
-#         print(accuracy / result.shape[0])
-#         return accuracy / result.shape[0]
+def compute_loss_with_tensor(model, data_set, loss_func):
+    # temp_loader = torch.utils.data.DataLoader(dataSet, batch_size=len(dataSet), shuffle=True)
+    data = data_set.data
+    batch_label = data_set.labels
+    result = model(data)
+    loss = loss_func(result.squeeze(), batch_label.squeeze()).item()
+    # print(loss)
+    return loss
+def evaluate(model, data_set):
+    data = data_set.data
+    batch_label = data_set.labels.numpy()
+    result = model(data).detach().numpy()
+    result = np.where(result >= 0.5, 1, 0).squeeze()
+    accuracy = np.where(result == batch_label.squeeze(), 1, 0).sum()
+    # print(accuracy/result.shape[0])
+    return accuracy/result.shape[0]
 
 def compute_accuracy(W, b, x, y):
     try:
@@ -222,55 +193,47 @@ def MSE_normalEQ(W, b, x, y):
     return W, b
 
 def buildGraph(loss="MSE"):
-
+    torch.manual_seed(421)
     error_train = []
     acc_train = []
     error_valid = []
     acc_valid = []
     error_test = []
     acc_test = []
+    train_dataset = Dataset(torch.tensor(trainData).float(), torch.tensor(trainTarget).float())
+    valid_dataset = Dataset(torch.tensor(validData).float(), torch.tensor(validTarget).float())
+    test_dataset = Dataset(torch.tensor(testData).float(), torch.tensor(testTarget).float())
 
-    # generate dataset objects that are used to create the batch iterators used for SGD
-    # this also make the data into augmented data, in which the i-th data is = {1, x_1, x_2, ..., x_d}
-    train_dataset = Dataset(trainData, trainTarget)
-    valid_dataset = Dataset(validData, validTarget)
-    test_dataset = Dataset(testData, testTarget)
-    torch.manual_seed(421)
-    aug_weights = torch.zeros((1+28 * 28, 1))
-    aug_weights = torch.tensor(truncatedNormal(aug_weights, aug_weights.mean(), 0.5), requires_grad=True).float()
-    loss_func = None
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=True)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=len(valid_dataset), shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=True)
-    model = Prceptron(28*28+1, neuronCount=1, weight=aug_weights)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=500, shuffle=True)
+    model = Prceptron(trainData.shape[1]*trainData.shape[1])
     optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, weight_decay=0)
+    loss_func = None
     if loss == "MSE":
         loss_func = torch.nn.MSELoss()
-        for epoch in range (0, 500):
-            for i, batch in enumerate(train_loader):
-                optimizer.zero_grad()
-                feat, batch_label = batch
-                feat = feat.type(torch.FloatTensor)
-                result = model(feat)
-                batch_label = batch_label.squeeze().float()
-                loss = loss_func(input=result.squeeze(), target=batch_label.float())
-                loss.backward()
-                optimizer.step()
-                print(loss)
-            error_train.append(compute_loss_with_tensor(aug_weights, train_dataset, loss_func))
-            error_valid.append(compute_loss_with_tensor(aug_weights, valid_dataset, loss_func))
-            error_test.append(compute_loss_with_tensor(aug_weights, test_dataset, loss_func))
-            # acc_train.append(evaluate(model, train_loader))
-            #
-            acc_valid.append(evaluate(model, valid_loader))
-            # acc_test.append(evaluate(model, test_loader))
-        plot_trend([error_train, error_valid, error_test],
-                   data_title="pytorch_lr==0.0001_weightDecay==0_Loss", y_label="Loss")
-        plot_trend([acc_train, acc_valid, acc_test], data_title="pytorch_lr==0.0001_weightDecay==0_Accuracy")
     elif loss == "CE":
         loss_func = torch.nn.CrossEntropyLoss()
-    return weights, bias, optimizer
-
+    for epoch in range(0, 500):
+        for i, batch in enumerate(train_loader):
+            optimizer.zero_grad()
+            feat, batch_label = batch
+            feat = feat.type(torch.FloatTensor)
+            result = model(feat)
+            batch_label = batch_label.squeeze().float()
+            loss = loss_func(input=result.squeeze(), target=batch_label.float())
+            loss.backward()
+            optimizer.step()
+        error_train.append(compute_loss_with_tensor(model, train_dataset, loss_func))
+        error_valid.append(compute_loss_with_tensor(model, valid_dataset, loss_func))
+        error_test.append(compute_loss_with_tensor(model, test_dataset, loss_func))
+        acc_train.append(evaluate(model, train_dataset))
+        acc_valid.append(evaluate(model, valid_dataset))
+        acc_test.append(evaluate(model, test_dataset))
+    plot_trend([error_train, error_valid, error_test],
+               data_title="pytorch_CE_lr==0.0001_weightDecay==0_Loss", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="pytorch_CE_lr==0.0001_weightDecay==0_Accuracy")
+    weights = model.fc1.weight.data.detach().numpy()
+    bias = model.fc1.bias.data.detach().numpy()
+    return weights, bias
 
 trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
 # print(trainData.shape) # (num of item, length, width)
@@ -312,7 +275,6 @@ def run_part_1():
 #
 #     print("the normal of the weight vector is" + str(np.linalg.norm(W)))
 
-trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
 if __name__== "__main__":
     # run_part_1()
-    buildGraph()
+    print(buildGraph("CE"))
