@@ -206,7 +206,8 @@ def buildGraph(loss="MSE"):
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=500, shuffle=True)
     model = Prceptron(trainData.shape[1]*trainData.shape[1])
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, weight_decay=0)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, weight_decay=0)
+    optimizer = torch.optim.Adam(model.parameters(), lr = 0.0001, eps=0.0001)
     loss_func = None
     if loss == "MSE":
         loss_func = torch.nn.MSELoss()
@@ -229,8 +230,8 @@ def buildGraph(loss="MSE"):
         acc_valid.append(evaluate(model, valid_dataset))
         acc_test.append(evaluate(model, test_dataset))
     plot_trend([error_train, error_valid, error_test],
-               data_title="pytorch_CE_lr==0.0001_weightDecay==0_Loss", y_label="Loss")
-    plot_trend([acc_train, acc_valid, acc_test], data_title="pytorch_CE_lr==0.0001_weightDecay==0_Accuracy")
+               data_title="pytorch_MSE_lr==0.0001_weightDecay==0_ep=1E-4_loss", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="pytorch_MSE_lr==0.0001_weightDecay==0_ep=1E-4_Accuracy")
     weights = model.fc1.weight.data.detach().numpy()
     bias = model.fc1.bias.data.detach().numpy()
     return weights, bias
@@ -277,4 +278,4 @@ def run_part_1():
 
 if __name__== "__main__":
     # run_part_1()
-    print(buildGraph("CE"))
+    print(buildGraph())

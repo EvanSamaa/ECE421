@@ -2,9 +2,16 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="428e9743-245c-4f90-8644-8a208c1f0a2b" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/pytorch_CE_lr==0.0001_weightDecay==0_Accuracy.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytorch_CE_lr==0.0001_weightDecay==0_Loss.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytorch_MSE_lr==0.0001_weightDecay==0_Accuracy_batch_100.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytorch_MSE_lr==0.0001_weightDecay==0_Accuracy_batch_1750.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytorch_MSE_lr==0.0001_weightDecay==0_Accuracy_batch_700.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytorch_MSE_lr==0.0001_weightDecay==0_Loss_batch_100.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytorch_MSE_lr==0.0001_weightDecay==0_Loss_batch_1750.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytorch_MSE_lr==0.0001_weightDecay==0_Loss_batch_700.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pytorch_lr==0.0001_weightDecay==0_Accuracy.png" beforeDir="false" afterPath="$PROJECT_DIR$/pytorch_lr==0.0001_weightDecay==0_Accuracy.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pytorch_lr==0.0001_weightDecay==0_Loss.png" beforeDir="false" afterPath="$PROJECT_DIR$/pytorch_lr==0.0001_weightDecay==0_Loss.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pytorch_lr==0.0001_weightDecay==0_Loss.png" beforeDir="false" afterPath="$PROJECT_DIR$/pytorch_lr==0.0001_weightDecay==0_Loss_batch_size_100.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/starter.py" beforeDir="false" afterPath="$PROJECT_DIR$/starter.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
