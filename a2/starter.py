@@ -81,8 +81,8 @@ def gradCE(y, s):
     x = softmax(s)
 
     # Construct derivative matrix
-    A = np.outer(x, x) + np.diag(x)
-    grad = - np.dot(A, y/x)
+    A = -np.outer(x, x) + np.diag(x)
+    grad = -np.dot(A, y / x)
 
     return grad
 
