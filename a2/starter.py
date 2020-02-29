@@ -1,4 +1,3 @@
-import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -44,20 +43,30 @@ def shuffle(trainData, trainTarget):
 
 
 def relu(x):
-    # TODO
+    """
+    Returns output of the ReLU activation function.
+    "x" can be scalar or array.
+    """
+    h = np.maximum(0, x)
+    return h
 
 def softmax(x):
-    # TODO
+    
+    # Subtract max element from input array to prevent expoential overflow
+    x = x - np.max(x) 
+
+    pass
 
 
 def computeLayer(X, W, b):
     # TODO
+    pass
 
 def CE(target, prediction):
-
     # TODO
+    pass
 
 def gradCE(target, prediction):
-
     # TODO
+    pass
 
