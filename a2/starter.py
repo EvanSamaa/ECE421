@@ -44,39 +44,45 @@ def shuffle(trainData, trainTarget):
     return data, target
 
 
-def relu(x):
+def relu(s):
 
     # ReLU
-    h = np.maximum(0, x)
-    return h
+    x = np.maximum(0, s)
+    return x
 
 
-def softmax(x):
+def softmax(s):
 
     # Subtract max element from input array to prevent expoential overflow
-    x = x - np.max(x)
+    s = s - np.max(s)
 
     # Softmax
-    h = np.exp(x) / np.sum(np.exp(x))
-    return h
+    x = np.exp(s) / np.sum(np.exp(s))
+    return x
 
 
 def computeLayer(x, W, b):
 
     # Product of layer (Note activation function still needs to be applied)
-    h = np.dot(W, x) + b
-    return h
+    s = np.dot(W, x) + b
+    return s
 
 
 def CE(target, prediction):
 
     # Cross Entropy loss for target and prediction
-    h = (-1 / N) * np.sum(target * np.log(prediction))
-    return h
+    y_hat = (-1 / N) * np.sum(target * np.log(prediction))
+    return y_hat
 
 
-def gradCE(s, o):
+def gradCE(y, s):
 
+    # Find prediction
+    x = softmax(s)
 
-    pass
+    # Construct derivative matrix
+    A = np.outer(x, x) + np.diag(x)
+    grad = - np.dot(A, y/x)
+
+    return grad
 
