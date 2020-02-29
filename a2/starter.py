@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 # Load the data
 def loadData():
@@ -17,6 +18,7 @@ def loadData():
         validData, validTarget = Data[10000:16000], Target[10000:16000]
         testData, testTarget = Data[16000:], Target[16000:]
     return trainData, validData, testData, trainTarget, validTarget, testTarget
+
 
 # Implementation of a neural network using only Numpy - trained using gradient descent with momentum
 def convertOneHot(trainTarget, validTarget, testTarget):
@@ -43,30 +45,38 @@ def shuffle(trainData, trainTarget):
 
 
 def relu(x):
-    """
-    Returns output of the ReLU activation function.
-    "x" can be scalar or array.
-    """
+
+    # ReLU
     h = np.maximum(0, x)
     return h
 
+
 def softmax(x):
-    
+
     # Subtract max element from input array to prevent expoential overflow
-    x = x - np.max(x) 
+    x = x - np.max(x)
 
-    pass
+    # Softmax
+    h = np.exp(x) / np.sum(np.exp(x))
+    return h
 
 
-def computeLayer(X, W, b):
-    # TODO
-    pass
+def computeLayer(x, W, b):
+
+    # Product of layer (Note activation function still needs to be applied)
+    h = np.dot(W, x) + b
+    return h
+
 
 def CE(target, prediction):
-    # TODO
-    pass
 
-def gradCE(target, prediction):
-    # TODO
+    # Cross Entropy loss for target and prediction
+    h = (-1 / N) * np.sum(target * np.log(prediction))
+    return h
+
+
+def gradCE(s, o):
+
+
     pass
 
