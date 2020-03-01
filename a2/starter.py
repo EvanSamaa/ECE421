@@ -193,9 +193,9 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             optimizer.zero_grad()
             del loss, y_hat, acc, data, label
         cnn.eval()
-
-        validation_output = cnn(change_shape_and_add_channel(validData).cuda())
-        test_output = cnn(change_shape_and_add_channel(testData).cuda())
+        print(i)
+        validation_output = cnn(change_shape_and_add_channel(validData))
+        test_output = cnn(change_shape_and_add_channel(testData))
 
         if not torch.cuda.is_available():
             error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)).item())
@@ -221,7 +221,6 @@ def train_torch_model(lr = 0.0001, epoch = 50):
 
 
 if __name__ == "__main__":
-
     train_torch_model()
 
     d1 = 0
