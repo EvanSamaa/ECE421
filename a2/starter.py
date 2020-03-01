@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
+from model import linearModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
@@ -87,7 +88,8 @@ def gradCE(y, s):
     return grad
 
 if __name__ == "__main__":
-    X = np.random.random((5,4))
-    W = np.random.random((4,12))
+    k=5
+    d=4
+    m=linearModel(k,d)
     b = 3
     print(computeLayer(X,W,b))
