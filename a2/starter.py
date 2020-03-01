@@ -178,9 +178,10 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             optimizer.step()
             error_train.append(loss)
             acc_train.append(acc)
+        cnn.eval()
         validation_output = cnn(change_shape_and_add_channel(validData))
         test_output = cnn(change_shape_and_add_channel(testData))
-        cnn.eval()
+
         print(i)
         if not torch.cuda.is_available():
             error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)))
