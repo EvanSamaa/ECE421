@@ -71,8 +71,8 @@ def computeLayer(x, W, b):
 def CE(target, prediction):
 
     # Cross Entropy loss for target and prediction
-    y_hat = (-1 / N) * np.sum(target * np.log(prediction))
-    return y_hat
+    l = (-1 / target.shape[0]) * np.sum(target * np.log(prediction))
+    return l
 
 
 def gradCE(y, s):
