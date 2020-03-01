@@ -176,7 +176,7 @@ def train_torch_model(lr = 0.0001, epoch = 50):
         MyCustomDataset(trainData, trainTarget), batch_size=32
     )
     loss_func = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr, weight_decay=0.01)
+    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr, weight_decay=0.1)
     del trainData, trainTarget
     for i in range(0, epoch):
         for data, label in trainDataLoader:
@@ -217,8 +217,8 @@ def train_torch_model(lr = 0.0001, epoch = 50):
     error_train = [error_train[i] for i in range(0, len(error_train), num)]
     acc_train = [acc_train[i] for i in range(0, len(acc_train), num)]
     plot_trend([error_train, error_valid, error_test],
-               data_title="torch_loss_2-3-001", y_label="Loss")
-    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-3-001")
+               data_title="torch_loss_2-3-01", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-3-01")
 
 
 if __name__ == "__main__":
