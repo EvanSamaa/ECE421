@@ -53,7 +53,7 @@ def relu(s):
 
 def softmax(s):
 
-    # Subtract max element from input array to prevent expoential overflow
+    # Subtract max element from input array to prevent exponential overflow
     s = s - np.max(s)
 
     # Softmax
@@ -71,8 +71,8 @@ def computeLayer(x, W, b):
 def CE(target, prediction):
 
     # Cross Entropy loss for target and prediction
-    l = (-1 / target.shape[0]) * np.sum(target * np.log(prediction))
-    return l
+    loss = (-1 / target.shape[0]) * np.sum(target * np.log(prediction))
+    return loss
 
 
 def gradCE(y, s):
