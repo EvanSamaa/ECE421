@@ -176,7 +176,7 @@ def train_torch_model(lr = 0.0001, epoch = 50):
         MyCustomDataset(trainData, trainTarget), batch_size=32
     )
     loss_func = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr, weight_decay=)
+    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr, weight_decay=0)
     for i in range(0, epoch):
         for data, label in trainDataLoader:
             optimizer.zero_grad()
