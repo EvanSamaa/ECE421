@@ -167,7 +167,7 @@ def train_torch_model(lr = 0.0001, epoch = 50):
     trainDataLoader = dataloader.DataLoader(MyCustomDataset(trainData, trainTarget), batch_size=32)
     loss_func = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
-
+    del trainData, trainTarget
     for i in range(0, epoch):
         for data, label in trainDataLoader:
             optimizer.zero_grad()
@@ -177,10 +177,11 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             acc = evaluate_accuracy(y_hat, label)
             loss.backward()
             optimizer.step()
+
             error_train.append(loss.item())
             acc_train.append(acc)
-
-            del loss, y_hat, acc
+            optimizer.zero_grad()
+            del loss, y_hat, acc, data, label
         cnn.eval()
         print(i)
         validation_output = cnn(change_shape_and_add_channel(validData))
