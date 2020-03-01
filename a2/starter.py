@@ -182,10 +182,16 @@ def train_torch_model(lr = 0.0001, epoch = 50):
         test_output = cnn(change_shape_and_add_channel(testData))
         cnn.eval()
         print(i)
-        error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)))
-        error_test.append(loss_func(test_output, torch.LongTensor(testTarget)))
-        acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
-        acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
+        if not torch.cuda.is_available():
+            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)))
+            error_test.append(loss_func(test_output, torch.LongTensor(testTarget)))
+            acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
+            acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
+        else:
+            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget).type_as(torch.cuda.FloatTensor)))
+            error_test.append(loss_func(test_output, torch.LongTensor(testTarget).type_as(torch.cuda.FloatTensor)))
+            acc_valid.append(evaluate_accuracy(validation_output, torch.LongTensor(validTarget).type_as(torch.cuda.FloatTensor)))
+            acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget).type_as(torch.cuda.FloatTensor)))
     plot_trend([error_train, error_valid, error_test],
                data_title="torch_loss_2-1", y_label="Loss")
     plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-1")
