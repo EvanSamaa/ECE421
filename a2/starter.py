@@ -178,21 +178,24 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             optimizer.step()
             error_train.append(loss.item())
             acc_train.append(acc)
-        cnn.eval()
-        validation_output = cnn(change_shape_and_add_channel(validData))
-        test_output = cnn(change_shape_and_add_channel(testData))
+            cnn.eval()
+            validation_output = cnn(change_shape_and_add_channel(validData))
+            test_output = cnn(change_shape_and_add_channel(testData))
+            print(i)
+            if not torch.cuda.is_available():
+                error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)).item())
+                error_test.append(loss_func(test_output, torch.LongTensor(testTarget)).item())
+                acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
+                acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
+            else:
+                error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget).cuda()).item())
+                error_test.append(loss_func(test_output, torch.LongTensor(testTarget).cuda()).item())
+                acc_valid.append(evaluate_accuracy(validation_output, torch.LongTensor(validTarget).cuda()))
+                acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget).cuda()))
+    print("The final Training Accuracy is ", acc_train[-1])
+    print("The final Validation Accuracy is ", acc_valid[-1])
+    print("The final Testing Accuracy is ", acc_test[-1])
 
-        print(i)
-        if not torch.cuda.is_available():
-            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)).item())
-            error_test.append(loss_func(test_output, torch.LongTensor(testTarget)).item())
-            acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
-            acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
-        else:
-            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget).cuda()).item())
-            error_test.append(loss_func(test_output, torch.LongTensor(testTarget).cuda()).item())
-            acc_valid.append(evaluate_accuracy(validation_output, torch.LongTensor(validTarget).cuda()))
-            acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget).cuda()))
     plot_trend([error_train, error_valid, error_test],
                data_title="torch_loss_2-1", y_label="Loss")
     plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-1")
