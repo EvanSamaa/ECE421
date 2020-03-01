@@ -157,7 +157,7 @@ def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_ti
 
 
 
-def train_torch_model(lr = 0.0001, epoch = 50, weight_decay = 0.01):
+def train_torch_model(lr = 0.0001, epoch = 50, weight_decay = 0.1):
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
         print("on GPU")
@@ -234,8 +234,8 @@ def train_torch_model(lr = 0.0001, epoch = 50, weight_decay = 0.01):
     error_train = [error_train[i] for i in range(0, len(error_train), num)]
     acc_train = [acc_train[i] for i in range(0, len(acc_train), num)]
     plot_trend([error_train, error_valid, error_test],
-               data_title="torch_loss_2-3-05", y_label="Loss")
-    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-3-05")
+               data_title="torch_loss_2-3-01", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-3-01")
 
 
 if __name__ == "__main__":
