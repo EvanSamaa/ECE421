@@ -156,7 +156,7 @@ def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_ti
 
 
 
-def train_torch_model(lr = 0.0001, epoch = 50):
+def train_torch_model(lr = 0.0001, epoch = 4):
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
         print("on GPU")
@@ -191,6 +191,7 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             error_train.append(loss.item())
             acc_train.append(acc)
             optimizer.zero_grad()
+            print(acc_train)
             del loss, y_hat, acc, data, label
         cnn.eval()
 
@@ -213,8 +214,8 @@ def train_torch_model(lr = 0.0001, epoch = 50):
     print("The final Validation Accuracy is ", acc_valid[-1])
     print("The final Testing Accuracy is ", acc_test[-1])
     num = int(len(error_train) / len(error_valid))
-    error_train = (error_train[i] for i in range(0, len(error_train), num))
-    acc_train = (acc_train[i] for i in range(0, len(acc_train), num))
+    error_train = [error_train[i] for i in range(0, len(error_train), num)]
+    acc_train = [acc_train[i] for i in range(0, len(acc_train), num)]
     plot_trend([error_train, error_valid, error_test],
                data_title="torch_loss_2-1", y_label="Loss")
     plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-1")
