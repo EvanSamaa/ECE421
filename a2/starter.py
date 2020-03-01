@@ -46,6 +46,7 @@ def shuffle(trainData, trainTarget):
     data, target = trainData[randIndx], target[randIndx]
     return data, target
 
+
 def relu(s):
 
     # ReLU
@@ -87,30 +88,36 @@ def gradCE(y, s):
     grad = -np.dot(A, y / x)
 
     return grad
+
+
 def evaluate_accuracy(y_hat, y):
     y_hat = torch.argmax(y_hat, dim=1)
     if torch.cuda.is_available():
         y_hat = y_hat.cpu()
         y = y.cpu()
     accuracy = np.where(y_hat == y, 1, 0).sum()
-    return(accuracy/y.size()[0])
+    return accuracy / y.size()[0]
+
 
 class Cnn_model(torch.nn.Module):
     def __init__(self):
         super(Cnn_model, self).__init__()
-        self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=32, stride=1, kernel_size=3)
+        self.conv1 = torch.nn.Conv2d(
+            in_channels=1, out_channels=32, stride=1, kernel_size=3
+        )
         self.relu = torch.nn.functional.relu
         self.batchNorm = torch.nn.BatchNorm2d(num_features=32)
         self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2)
         self.fc1 = torch.nn.Linear(5408, 784)
         self.fc2 = torch.nn.Linear(784, 10)
         self.max = torch.nn.functional.softmax
+
     def forward(self, x):
         x = self.relu(self.conv1(x))
         x = self.pool(self.batchNorm(x))
         x = torch.flatten(x, start_dim=1)
         x = self.relu(self.fc1(x))
-        x = self.max(self.fc2(x),dim=1)
+        x = self.max(self.fc2(x), dim=1)
         return x
 
 
@@ -164,7 +171,9 @@ def train_torch_model(lr = 0.0001, epoch = 50):
 
     # set up model
     cnn = Cnn_model()
-    trainDataLoader = dataloader.DataLoader(MyCustomDataset(trainData, trainTarget), batch_size=32)
+    trainDataLoader = dataloader.DataLoader(
+        MyCustomDataset(trainData, trainTarget), batch_size=32
+    )
     loss_func = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
     del trainData, trainTarget
@@ -206,11 +215,6 @@ def train_torch_model(lr = 0.0001, epoch = 50):
     plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-1")
 
 
-
-
-
-
-
 if __name__ == "__main__":
 
     train_torch_model()
@@ -218,8 +222,8 @@ if __name__ == "__main__":
     d1 = 0
     d2 = [100,500,2000]
     for hidden_size in d2:
-        m = linearModel(d1, hidden_size, 10, [relu,softmax], CE, gradCE)
-        #training stuff
+        m = linearModel(d1, hidden_size, 10, [relu, softmax], CE, gradCE)
+        # training stuff
 
     y = np.random.random((5,))
     y_hat = np.random.random((5,))
