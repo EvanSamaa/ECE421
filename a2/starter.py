@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
+from model import linearModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
@@ -193,8 +194,11 @@ def train_torch_model(lr = 0.0001, epoch = 50):
 
 
 if __name__ == "__main__":
-    X = np.random.random((5,4))
-    W = np.random.random((4,12))
+    d1 = #input size
+    d2 = [100,500,2000]
+    for hidden_size in d2:
+        m = linearModel(d1, hidden_size, 10, [relu,softmax], CE, gradCE)
+        #training stuff
 
     y = np.random.random((5,))
     y_hat = np.random.random((5,))
