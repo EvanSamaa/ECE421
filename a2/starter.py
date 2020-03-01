@@ -176,7 +176,7 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             loss = loss_func(y_hat, label)
             loss.backward()
             optimizer.step()
-            error_train.append(loss)
+            error_train.append(loss.item())
             acc_train.append(acc)
         cnn.eval()
         validation_output = cnn(change_shape_and_add_channel(validData))
@@ -184,13 +184,13 @@ def train_torch_model(lr = 0.0001, epoch = 50):
 
         print(i)
         if not torch.cuda.is_available():
-            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)))
-            error_test.append(loss_func(test_output, torch.LongTensor(testTarget)))
+            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)).item())
+            error_test.append(loss_func(test_output, torch.LongTensor(testTarget)).item())
             acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
             acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
         else:
-            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget).cuda()))
-            error_test.append(loss_func(test_output, torch.LongTensor(testTarget).cuda()))
+            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget).cuda()).item())
+            error_test.append(loss_func(test_output, torch.LongTensor(testTarget).cuda()).item())
             acc_valid.append(evaluate_accuracy(validation_output, torch.LongTensor(validTarget).cuda()))
             acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget).cuda()))
     plot_trend([error_train, error_valid, error_test],
