@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import dataset, dataloader
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -6,7 +7,6 @@ import os
 from model import linearModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
 
 # Load the data
 def loadData():
@@ -46,15 +46,16 @@ def shuffle(trainData, trainTarget):
     data, target = trainData[randIndx], target[randIndx]
     return data, target
 
-
 def relu(s):
+
     # ReLU
     x = np.maximum(0, s)
     return x
 
 
 def softmax(s):
-    # Subtract max element from input array to prevent expoential overflow
+
+    # Subtract max element from input array to prevent exponential overflow
     s = s - np.max(s)
 
     # Softmax
@@ -63,18 +64,21 @@ def softmax(s):
 
 
 def computeLayer(x, W, b):
+
     # Product of layer (Note activation function still needs to be applied)
     s = np.dot(W, x) + b
     return s
 
 
 def CE(target, prediction):
+
     # Cross Entropy loss for target and prediction
-    y_hat = (-1 / N) * np.sum(target * np.log(prediction))
-    return y_hat
+    loss = (-1 / target.shape[0]) * np.sum(target * np.log(prediction))
+    return loss
 
 
 def gradCE(y, s):
+
     # Find prediction
     x = softmax(s)
 
@@ -83,6 +87,65 @@ def gradCE(y, s):
     grad = -np.dot(A, y / x)
 
     return grad
+def evaluate_accuracy(y_hat, y):
+    y_hat = torch.argmax(y_hat, dim=1)
+    accuracy = np.where(y_hat == y, 1, 0).sum()
+    return(accuracy/y.size()[0])
+
+class Cnn_model(torch.nn.Module):
+    def __init__(self):
+        super(Cnn_model, self).__init__()
+        self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=32, stride=1, kernel_size=3)
+        self.relu = torch.nn.functional.relu
+        self.batchNorm = torch.nn.BatchNorm2d(num_features=32)
+        self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+        self.fc1 = torch.nn.Linear(5408, 784)
+        self.fc2 = torch.nn.Linear(784, 10)
+        self.max = torch.nn.functional.softmax
+    def forward(self, x):
+        x = self.relu(self.conv1(x))
+        x = self.pool(self.batchNorm(x))
+        x = torch.flatten(x, start_dim=1)
+        x = self.relu(self.fc1(x))
+        x = self.max(self.fc2(x),dim=1)
+        return x
+
+
+class MyCustomDataset(dataset.Dataset):
+    def __init__(self, data, label):
+        data = torch.tensor(data).float()
+        size = data.size()
+        data = data.reshape((size[0], 1, size[1], size[2]))
+        self.data = data
+        self.label = torch.tensor(label).long()
+
+    def __getitem__(self, index):
+        # stuff
+        return self.data[index, :, :], self.label[index]
+
+    def __len__(self):
+        return self.label.size()[0]
+
+def train_torch_model(lr = 0.0001, epoch = 50):
+    trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+    cnn = Cnn_model()
+    trainDataLoader = dataloader.DataLoader(MyCustomDataset(trainData, trainTarget), batch_size=32)
+    loss_func = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
+    for i in range(0, epoch):
+        for data, label in trainDataLoader:
+            optimizer.zero_grad()
+            cnn.train()
+            y_hat = cnn(data)
+            acc = evaluate_accuracy(y_hat, label)
+            loss = loss_func(y_hat, label)
+            loss.backward()
+            optimizer.step()
+
+
+
+
+
 
 
 if __name__ == "__main__":
@@ -91,3 +154,8 @@ if __name__ == "__main__":
     for hidden_size in d2:
         m = linearModel(d1, hidden_size, 10, [relu,softmax], CE, gradCE)
         #training stuff
+
+    y = np.random.random((5,))
+    y_hat = np.random.random((5,))
+
+    train_torch_model()
