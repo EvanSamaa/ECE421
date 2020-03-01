@@ -105,6 +105,7 @@ class Cnn_model(torch.nn.Module):
         self.conv1 = torch.nn.Conv2d(
             in_channels=1, out_channels=32, stride=1, kernel_size=3
         )
+        torch.nn.init.xavier_uniform(self.conv1.weight)
         self.relu = torch.nn.functional.relu
         self.batchNorm = torch.nn.BatchNorm2d(num_features=32)
         self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2)
@@ -176,7 +177,7 @@ def train_torch_model(lr = 0.0001, epoch = 50):
         MyCustomDataset(trainData, trainTarget), batch_size=32
     )
     loss_func = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr, weight_decay=0.1)
+    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr, weight_decay=0.5)
     del trainData, trainTarget
     for i in range(0, epoch):
         for data, label in trainDataLoader:
@@ -217,8 +218,8 @@ def train_torch_model(lr = 0.0001, epoch = 50):
     error_train = [error_train[i] for i in range(0, len(error_train), num)]
     acc_train = [acc_train[i] for i in range(0, len(acc_train), num)]
     plot_trend([error_train, error_valid, error_test],
-               data_title="torch_loss_2-3-01", y_label="Loss")
-    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-3-01")
+               data_title="torch_loss_2-3-05", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-3-05")
 
 
 if __name__ == "__main__":
