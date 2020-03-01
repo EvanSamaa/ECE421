@@ -1,9 +1,10 @@
-import tensorflow as tf
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 # Load the data
 def loadData():
@@ -18,6 +19,7 @@ def loadData():
         validData, validTarget = Data[10000:16000], Target[10000:16000]
         testData, testTarget = Data[16000:], Target[16000:]
     return trainData, validData, testData, trainTarget, validTarget, testTarget
+
 
 # Implementation of a neural network using only Numpy - trained using gradient descent with momentum
 def convertOneHot(trainTarget, validTarget, testTarget):
@@ -42,22 +44,50 @@ def shuffle(trainData, trainTarget):
     data, target = trainData[randIndx], target[randIndx]
     return data, target
 
+def relu(s):
 
-def relu(x):
-    # TODO
-
-def softmax(x):
-    # TODO
+    # ReLU
+    x = np.maximum(0, s)
+    return x
 
 
-def computeLayer(X, W, b):
-    # TODO
+def softmax(s):
+
+    # Subtract max element from input array to prevent expoential overflow
+    s = s - np.max(s)
+
+    # Softmax
+    x = np.exp(s) / np.sum(np.exp(s))
+    return x
+
+
+def computeLayer(x, W, b):
+
+    # Product of layer (Note activation function still needs to be applied)
+    s = np.dot(W, x) + b
+    return s
+
 
 def CE(target, prediction):
 
-    # TODO
+    # Cross Entropy loss for target and prediction
+    y_hat = (-1 / N) * np.sum(target * np.log(prediction))
+    return y_hat
 
-def gradCE(target, prediction):
 
-    # TODO
+def gradCE(y, s):
 
+    # Find prediction
+    x = softmax(s)
+
+    # Construct derivative matrix
+    A = -np.outer(x, x) + np.diag(x)
+    grad = -np.dot(A, y / x)
+
+    return grad
+
+if __name__ == "__main__":
+    X = np.random.random((5,4))
+    W = np.random.random((4,12))
+    b = 3
+    print(computeLayer(X,W,b))
