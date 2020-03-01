@@ -179,6 +179,8 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             optimizer.step()
             error_train.append(loss.item())
             acc_train.append(acc)
+
+            del loss, y_hat, acc
         cnn.eval()
         print(i)
         validation_output = cnn(change_shape_and_add_channel(validData))
@@ -193,6 +195,7 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             error_test.append(loss_func(test_output, torch.LongTensor(testTarget).cuda()).item())
             acc_valid.append(evaluate_accuracy(validation_output, torch.LongTensor(validTarget).cuda()))
             acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget).cuda()))
+        del validation_output, test_output
     print("The final Training Accuracy is ", acc_train[-1])
     print("The final Validation Accuracy is ", acc_valid[-1])
     print("The final Testing Accuracy is ", acc_test[-1])
