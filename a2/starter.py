@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-from model import linearModel
+from model import LinearModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
