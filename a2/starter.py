@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-from model import linearModel
+from model import LinearModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
@@ -92,6 +92,9 @@ def gradCE(y, s):
 
 def evaluate_accuracy(y_hat, y):
     y_hat = torch.argmax(y_hat, dim=1)
+    if torch.cuda.is_available():
+        y_hat = y_hat.cpu()
+        y = y.cpu()
     accuracy = np.where(y_hat == y, 1, 0).sum()
     return accuracy / y.size()[0]
 
@@ -120,9 +123,7 @@ class Cnn_model(torch.nn.Module):
 
 class MyCustomDataset(dataset.Dataset):
     def __init__(self, data, label):
-        data = torch.tensor(data).float()
-        size = data.size()
-        data = data.reshape((size[0], 1, size[1], size[2]))
+        data = change_shape_and_add_channel(data)
         self.data = data
         self.label = torch.tensor(label).long()
 
@@ -133,29 +134,89 @@ class MyCustomDataset(dataset.Dataset):
     def __len__(self):
         return self.label.size()[0]
 
+# helper function to turn (N, W, H) into (N, 1, W, H)
+def change_shape_and_add_channel(data):
+    data = torch.tensor(data).float()
+    size = data.size()
+    data = data.reshape((size[0], 1, size[1], size[2]))
+    return data
 
-def train_torch_model(lr=0.0001, epoch=50):
+def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_title="Accuracy", y_label="Accuracy"):
+
+    for data, name in zip(list_of_data, data_names):
+        x_axis = np.arange(len(data))
+        plt.plot(x_axis, np.array(data), label=name)
+    # plt.title(data_title)
+    plt.xlabel("Epochs")
+    plt.ylabel(y_label)
+    plt.legend()
+    plt.savefig(data_title + ".png")
+    plt.show()
+
+
+
+def train_torch_model(lr = 0.0001, epoch = 50):
+    if torch.cuda.is_available():
+        torch.set_default_tensor_type(torch.cuda.FloatTensor)
+        print("on GPU")
+    else:
+        print("on CPU")
+    error_train = []
+    acc_train = []
+    error_valid = []
+    acc_valid = []
+    error_test = []
+    acc_test = []
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+
+    # set up model
     cnn = Cnn_model()
     trainDataLoader = dataloader.DataLoader(
         MyCustomDataset(trainData, trainTarget), batch_size=32
     )
     loss_func = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
+
     for i in range(0, epoch):
         for data, label in trainDataLoader:
             optimizer.zero_grad()
             cnn.train()
             y_hat = cnn(data)
-            acc = evaluate_accuracy(y_hat, label)
             loss = loss_func(y_hat, label)
+            acc = evaluate_accuracy(y_hat, label)
             loss.backward()
             optimizer.step()
+            error_train.append(loss.item())
+            acc_train.append(acc)
+        cnn.eval()
+        print(i)
+        validation_output = cnn(change_shape_and_add_channel(validData))
+        test_output = cnn(change_shape_and_add_channel(testData))
+        if not torch.cuda.is_available():
+            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)).item())
+            error_test.append(loss_func(test_output, torch.LongTensor(testTarget)).item())
+            acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
+            acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
+        else:
+            error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget).cuda()).item())
+            error_test.append(loss_func(test_output, torch.LongTensor(testTarget).cuda()).item())
+            acc_valid.append(evaluate_accuracy(validation_output, torch.LongTensor(validTarget).cuda()))
+            acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget).cuda()))
+    print("The final Training Accuracy is ", acc_train[-1])
+    print("The final Validation Accuracy is ", acc_valid[-1])
+    print("The final Testing Accuracy is ", acc_test[-1])
+
+    plot_trend([error_train, error_valid, error_test],
+               data_title="torch_loss_2-1", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-1")
 
 
 if __name__ == "__main__":
-    d1 = #input size
-    d2 = [100, 500, 2000]
+
+    train_torch_model()
+
+    d1 = 0
+    d2 = [100,500,2000]
     for hidden_size in d2:
         m = linearModel(d1, hidden_size, 10, [relu, softmax], CE, gradCE)
         # training stuff
@@ -163,4 +224,5 @@ if __name__ == "__main__":
     y = np.random.random((5,))
     y_hat = np.random.random((5,))
 
-    train_torch_model()
+
+
