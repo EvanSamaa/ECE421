@@ -184,8 +184,8 @@ def train_torch_model(lr = 0.0001, epoch = 50):
         acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
         acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
     plot_trend([error_train, error_valid, error_test],
-               data_title="torch_loss", y_label="Loss")
-    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy")
+               data_title="torch_loss_2-1", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-1")
 
 
 
@@ -194,7 +194,10 @@ def train_torch_model(lr = 0.0001, epoch = 50):
 
 
 if __name__ == "__main__":
-    d1 = #input size
+
+    train_torch_model()
+
+    d1 = 0
     d2 = [100,500,2000]
     for hidden_size in d2:
         m = linearModel(d1, hidden_size, 10, [relu,softmax], CE, gradCE)
@@ -203,4 +206,5 @@ if __name__ == "__main__":
     y = np.random.random((5,))
     y_hat = np.random.random((5,))
 
-    train_torch_model()
+
+
