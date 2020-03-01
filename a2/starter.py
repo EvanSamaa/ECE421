@@ -1,4 +1,4 @@
-import tensorflow as tf
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -44,20 +44,31 @@ def shuffle(trainData, trainTarget):
 
 
 def relu(x):
-    # TODO
+    x = np.maximum(x,0)
+    return x
 
 def softmax(x):
+    x = x - max(x)
+    rtv = np.exp(x)/np.exp(x).sum()
+    return rtv
     # TODO
 
 
 def computeLayer(X, W, b):
+    rtv = np.matmul(X, W) + b
+    return rtv
     # TODO
 
 def CE(target, prediction):
-
+    pass
     # TODO
 
 def gradCE(target, prediction):
-
+    pass
     # TODO
 
+if __name__ == "__main__":
+    X = np.random.random((5,4))
+    W = np.random.random((4,12))
+    b = 3
+    print(computeLayer(X,W,b))
