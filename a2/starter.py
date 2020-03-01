@@ -7,6 +7,7 @@ from model import linearModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
+
 # Load the data
 def loadData():
     with np.load("notMNIST.npz") as data:
@@ -45,15 +46,14 @@ def shuffle(trainData, trainTarget):
     data, target = trainData[randIndx], target[randIndx]
     return data, target
 
-def relu(s):
 
+def relu(s):
     # ReLU
     x = np.maximum(0, s)
     return x
 
 
 def softmax(s):
-
     # Subtract max element from input array to prevent expoential overflow
     s = s - np.max(s)
 
@@ -63,21 +63,18 @@ def softmax(s):
 
 
 def computeLayer(x, W, b):
-
     # Product of layer (Note activation function still needs to be applied)
     s = np.dot(W, x) + b
     return s
 
 
 def CE(target, prediction):
-
     # Cross Entropy loss for target and prediction
     y_hat = (-1 / N) * np.sum(target * np.log(prediction))
     return y_hat
 
 
 def gradCE(y, s):
-
     # Find prediction
     x = softmax(s)
 
@@ -87,9 +84,10 @@ def gradCE(y, s):
 
     return grad
 
+
 if __name__ == "__main__":
-    k=5
-    d=4
-    m=linearModel(k,d)
-    b = 3
-    print(computeLayer(X,W,b))
+    d1 = #input size
+    d2 = [100,500,2000]
+    for hidden_size in d2:
+        m = linearModel(d1, hidden_size, 10, [relu,softmax], CE, gradCE)
+        #training stuff
