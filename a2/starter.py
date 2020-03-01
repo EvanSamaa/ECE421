@@ -191,7 +191,6 @@ def train_torch_model(lr = 0.0001, epoch = 4):
             error_train.append(loss.item())
             acc_train.append(acc)
             optimizer.zero_grad()
-            print(acc_train)
             del loss, y_hat, acc, data, label
         cnn.eval()
 
