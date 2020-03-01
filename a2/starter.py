@@ -144,6 +144,11 @@ def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_ti
 
 
 def train_torch_model(lr = 0.0001, epoch = 50):
+    if torch.cuda.is_available():
+        torch.set_default_tensor_type(torch.cuda.FloatTensor)
+        print("on GPU")
+    else:
+        print("on CPU")
     error_train = []
     acc_train = []
     error_valid = []
@@ -167,11 +172,12 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             loss = loss_func(y_hat, label)
             loss.backward()
             optimizer.step()
-
             error_train.append(loss)
             acc_train.append(acc)
         validation_output = cnn(change_shape_and_add_channel(validData))
         test_output = cnn(change_shape_and_add_channel(testData))
+        cnn.eval()
+        print(i)
         error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)))
         error_test.append(loss_func(test_output, torch.LongTensor(testTarget)))
         acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
