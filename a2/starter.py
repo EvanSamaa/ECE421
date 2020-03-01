@@ -157,7 +157,7 @@ def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_ti
 
 
 
-def train_torch_model(lr = 0.0001, epoch = 50):
+def train_torch_model(lr = 0.0001, epoch = 50, weight_decay = 0.01):
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
         print("on GPU")
@@ -171,29 +171,45 @@ def train_torch_model(lr = 0.0001, epoch = 50):
     acc_test = []
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
 
-    # set up model
-    cnn = Cnn_model()
+    # obtain dataloader
     trainDataLoader = dataloader.DataLoader(
         MyCustomDataset(trainData, trainTarget), batch_size=32
     )
+
+    # set up model and optimizer
+    cnn = Cnn_model()
     loss_func = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr, weight_decay=0.5)
-    del trainData, trainTarget
+    optimizer = torch.optim.Adam([
+        {"params": cnn.conv1.weight},
+        {"params": cnn.conv1.bias},
+        {"params": cnn.fc1.weight, 'weight_decay':weight_decay},
+        {"params": cnn.fc1.bias, 'weight_decay':weight_decay},
+        {"params": cnn.fc2.weight, 'weight_decay': weight_decay},
+        {"params": cnn.fc2.bias, 'weight_decay': weight_decay}
+    ], lr=lr, weight_decay=0)
+    del trainData, trainTarget # these are no longer used
+
+    # training loop
     for i in range(0, epoch):
+
+        # batches are achieved through the dataloader class
         for data, label in trainDataLoader:
+
             optimizer.zero_grad()
-            cnn.train()
+            cnn.train() # this is for batch normalization
             y_hat = cnn(data)
             loss = loss_func(y_hat, label)
             acc = evaluate_accuracy(y_hat, label)
             loss.backward()
             optimizer.step()
-
+            # calculate and store loss and accuracy
             error_train.append(loss.item())
             acc_train.append(acc)
             optimizer.zero_grad()
             del loss, y_hat, acc, data, label
-        cnn.eval()
+        cnn.eval() # this is for batch normalization
+
+        # calculate loss and accuracy for testing and validation data
         with torch.no_grad():
             print(i)
             validation_output = cnn(change_shape_and_add_channel(validData))
