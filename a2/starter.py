@@ -112,9 +112,7 @@ class Cnn_model(torch.nn.Module):
 
 class MyCustomDataset(dataset.Dataset):
     def __init__(self, data, label):
-        data = torch.tensor(data).float()
-        size = data.size()
-        data = data.reshape((size[0], 1, size[1], size[2]))
+        data = change_shape_and_add_channel(data)
         self.data = data
         self.label = torch.tensor(label).long()
 
@@ -125,12 +123,41 @@ class MyCustomDataset(dataset.Dataset):
     def __len__(self):
         return self.label.size()[0]
 
+# helper function to turn (N, W, H) into (N, 1, W, H)
+def change_shape_and_add_channel(data):
+    data = torch.tensor(data).float()
+    size = data.size()
+    data = data.reshape((size[0], 1, size[1], size[2]))
+    return data
+
+def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_title="Accuracy", y_label="Accuracy"):
+    x_axis = np.arange(len(list_of_data[0]))
+    for data, name in zip(list_of_data, data_names):
+        plt.plot(x_axis, np.array(data), label=name)
+    # plt.title(data_title)
+    plt.xlabel("Epochs")
+    plt.ylabel(y_label)
+    plt.legend()
+    plt.savefig(data_title + ".png")
+    plt.show()
+
+
+
 def train_torch_model(lr = 0.0001, epoch = 50):
+    error_train = []
+    acc_train = []
+    error_valid = []
+    acc_valid = []
+    error_test = []
+    acc_test = []
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+
+    # set up model
     cnn = Cnn_model()
     trainDataLoader = dataloader.DataLoader(MyCustomDataset(trainData, trainTarget), batch_size=32)
     loss_func = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
+
     for i in range(0, epoch):
         for data, label in trainDataLoader:
             optimizer.zero_grad()
@@ -140,6 +167,18 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             loss = loss_func(y_hat, label)
             loss.backward()
             optimizer.step()
+
+            error_train.append(loss)
+            acc_train.append(acc)
+        validation_output = cnn(change_shape_and_add_channel(validData))
+        test_output = cnn(change_shape_and_add_channel(testData))
+        error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)))
+        error_test.append(loss_func(test_output, torch.LongTensor(testTarget)))
+        acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
+        acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
+    plot_trend([error_train, error_valid, error_test],
+               data_title="torch_loss", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy")
 
 
 
