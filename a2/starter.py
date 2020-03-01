@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import dataset, dataloader
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -85,6 +86,66 @@ def gradCE(y, s):
     grad = -np.dot(A, y / x)
 
     return grad
+def evaluate_accuracy(y_hat, y):
+    y_hat = torch.argmax(y_hat, dim=1)
+    accuracy = np.where(y_hat == y, 1, 0).sum()
+    return(accuracy/y.size()[0])
+
+class Cnn_model(torch.nn.Module):
+    def __init__(self):
+        super(Cnn_model, self).__init__()
+        self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=32, stride=1, kernel_size=3)
+        self.relu = torch.nn.functional.relu
+        self.batchNorm = torch.nn.BatchNorm2d(num_features=32)
+        self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2)
+        self.fc1 = torch.nn.Linear(5408, 784)
+        self.fc2 = torch.nn.Linear(784, 10)
+        self.max = torch.nn.functional.softmax
+    def forward(self, x):
+        x = self.relu(self.conv1(x))
+        x = self.pool(self.batchNorm(x))
+        x = torch.flatten(x, start_dim=1)
+        x = self.relu(self.fc1(x))
+        x = self.max(self.fc2(x),dim=1)
+        return x
+
+
+class MyCustomDataset(dataset.Dataset):
+    def __init__(self, data, label):
+        data = torch.tensor(data).float()
+        size = data.size()
+        data = data.reshape((size[0], 1, size[1], size[2]))
+        self.data = data
+        self.label = torch.tensor(label).long()
+
+    def __getitem__(self, index):
+        # stuff
+        return self.data[index, :, :], self.label[index]
+
+    def __len__(self):
+        return self.label.size()[0]
+
+def train_torch_model(lr = 0.0001, epoch = 50):
+    trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+    cnn = Cnn_model()
+    trainDataLoader = dataloader.DataLoader(MyCustomDataset(trainData, trainTarget), batch_size=32)
+    loss_func = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
+    for i in range(0, epoch):
+        for data, label in trainDataLoader:
+            optimizer.zero_grad()
+            cnn.train()
+            y_hat = cnn(data)
+            acc = evaluate_accuracy(y_hat, label)
+            loss = loss_func(y_hat, label)
+            loss.backward()
+            optimizer.step()
+
+
+
+
+
+
 
 if __name__ == "__main__":
     X = np.random.random((5,4))
@@ -92,5 +153,5 @@ if __name__ == "__main__":
 
     y = np.random.random((5,))
     y_hat = np.random.random((5,))
-    print(CE(y, y_hat))
-    b = 3
+
+    train_torch_model()
