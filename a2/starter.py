@@ -89,6 +89,9 @@ def gradCE(y, s):
     return grad
 def evaluate_accuracy(y_hat, y):
     y_hat = torch.argmax(y_hat, dim=1)
+    if torch.cuda.is_available():
+        y_hat = y_hat.cpu()
+        y = y.cpu()
     accuracy = np.where(y_hat == y, 1, 0).sum()
     return(accuracy/y.size()[0])
 
