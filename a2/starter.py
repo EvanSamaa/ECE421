@@ -112,11 +112,13 @@ class Cnn_model(torch.nn.Module):
         self.fc1 = torch.nn.Linear(5408, 784)
         self.fc2 = torch.nn.Linear(784, 10)
         self.max = torch.nn.functional.softmax
+        self.dropout = torch.nn.Dropout(p=0.1)
 
     def forward(self, x):
         x = self.relu(self.conv1(x))
         x = self.pool(self.batchNorm(x))
         x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
         x = self.relu(self.fc1(x))
         x = self.max(self.fc2(x), dim=1)
         return x
@@ -230,12 +232,16 @@ def train_torch_model(lr = 0.0001, epoch = 50, weight_decay = 0):
     print("The final Training Accuracy is ", acc_train[-1])
     print("The final Validation Accuracy is ", acc_valid[-1])
     print("The final Testing Accuracy is ", acc_test[-1])
+
+    print("The final Training loss is ", error_train[-1])
+    print("The final Validation loss is ", error_valid[-1])
+    print("The final Testing loss is ", error_test[-1])
     num = int(len(error_train) / len(error_valid))
     error_train = [error_train[i] for i in range(0, len(error_train), num)]
     acc_train = [acc_train[i] for i in range(0, len(acc_train), num)]
     plot_trend([error_train, error_valid, error_test],
-               data_title="torch_loss_2-3-01", y_label="Loss")
-    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-3-05")
+               data_title="torch_loss_2-4-09", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-4-09")
 
 
 if __name__ == "__main__":
