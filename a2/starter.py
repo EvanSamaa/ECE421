@@ -157,7 +157,7 @@ def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_ti
 
 
 
-def train_torch_model(lr = 0.0001, epoch = 50, weight_decay = 0):
+def train_torch_model(lr = 0.0001, epoch = 50, weight_decay = 0.1):
     if torch.cuda.is_available():
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
         print("on GPU")
