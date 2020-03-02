@@ -112,7 +112,7 @@ class Cnn_model(torch.nn.Module):
         self.fc1 = torch.nn.Linear(5408, 784)
         self.fc2 = torch.nn.Linear(784, 10)
         self.max = torch.nn.functional.softmax
-        self.dropout = torch.nn.Dropout(p=0.1)
+        self.dropout = torch.nn.Dropout(p=0.25)
 
     def forward(self, x):
         x = self.relu(self.conv1(x))
@@ -240,8 +240,8 @@ def train_torch_model(lr = 0.0001, epoch = 50, weight_decay = 0):
     error_train = [error_train[i] for i in range(0, len(error_train), num)]
     acc_train = [acc_train[i] for i in range(0, len(acc_train), num)]
     plot_trend([error_train, error_valid, error_test],
-               data_title="torch_loss_2-4-09", y_label="Loss")
-    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-4-09")
+               data_title="torch_loss_2-4-075", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-4-075")
 
 
 if __name__ == "__main__":
