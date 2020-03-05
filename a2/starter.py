@@ -46,6 +46,7 @@ def shuffle(trainData, trainTarget):
     data, target = trainData[randIndx], target[randIndx]
     return data, target
 
+
 def relu(s):
 
     # ReLU
@@ -73,10 +74,7 @@ def computeLayer(x, W, b):
 def CE(target, prediction):
 
     # Cross Entropy loss for target and prediction
-    loss = (-1 / target.shape[0]) * np.sum(target[np.where(target==1)] * np.log(prediction[np.where(target==1)]))
-    if np.isnan(loss) or np.isinf(loss):
-        print(prediction,target)
-        1/0
+    loss = (-1 / target.shape[0]) * np.sum(target * np.log(prediction))
     return loss
 
 
@@ -131,20 +129,50 @@ class MyCustomDataset(dataset.Dataset):
 
 def train_torch_model(lr = 0.0001, epoch = 50):
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+
+    # obtain dataloader
+    trainDataLoader = dataloader.DataLoader(
+        MyCustomDataset(trainData, trainTarget), batch_size=32
+    )
+
+    # set up model and optimizer
     cnn = Cnn_model()
-    trainDataLoader = dataloader.DataLoader(MyCustomDataset(trainData, trainTarget), batch_size=32)
     loss_func = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
+    optimizer = torch.optim.Adam([
+        {"params": cnn.conv1.weight},
+        {"params": cnn.conv1.bias},
+        {"params": cnn.fc1.weight, 'weight_decay':weight_decay},
+        {"params": cnn.fc1.bias, 'weight_decay':weight_decay},
+        {"params": cnn.fc2.weight, 'weight_decay': weight_decay},
+        {"params": cnn.fc2.bias, 'weight_decay': weight_decay}
+    ], lr=lr, weight_decay=0)
+    del trainData, trainTarget # these are no longer used
+
+    # training loop
     for i in range(0, epoch):
+
+        # batches are achieved through the dataloader class
         for data, label in trainDataLoader:
+
             optimizer.zero_grad()
-            cnn.train()
+            cnn.train() # this is for batch normalization
             y_hat = cnn(data)
-            acc = evaluate_accuracy(y_hat, label)
             loss = loss_func(y_hat, label)
+            acc = evaluate_accuracy(y_hat, label)
             loss.backward()
             optimizer.step()
+            # calculate and store loss and accuracy
+            error_train.append(loss.item())
+            acc_train.append(acc)
+            optimizer.zero_grad()
+            del loss, y_hat, acc, data, label
+        cnn.eval() # this is for batch normalization
 
+        # calculate loss and accuracy for testing and validation data
+        with torch.no_grad():
+            print(i)
+            validation_output = cnn(change_shape_and_add_channel(validData))
+            test_output = cnn(change_shape_and_add_channel(testData))
 
 def train_numpy_model(hidden_dim,epoch=200):
     trainData, validData, testData, trainTarget, validTarget, testTarget=loadData()
@@ -161,6 +189,31 @@ def train_numpy_model(hidden_dim,epoch=200):
             model.loss_backward(label)
             loss+=model.compute_loss(trainTarget[j], prediction)
         print(i,loss/trainData.shape[0])
+            if not torch.cuda.is_available():
+                error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)).item())
+                error_test.append(loss_func(test_output, torch.LongTensor(testTarget)).item())
+                acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
+                acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
+            else:
+                error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget).cuda()).item())
+                error_test.append(loss_func(test_output, torch.LongTensor(testTarget).cuda()).item())
+                acc_valid.append(evaluate_accuracy(validation_output, torch.LongTensor(validTarget).cuda()))
+                acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget).cuda()))
+            del validation_output, test_output
+
+    print("The final Training Accuracy is ", acc_train[-1])
+    print("The final Validation Accuracy is ", acc_valid[-1])
+    print("The final Testing Accuracy is ", acc_test[-1])
+
+    print("The final Training loss is ", error_train[-1])
+    print("The final Validation loss is ", error_valid[-1])
+    print("The final Testing loss is ", error_test[-1])
+    num = int(len(error_train) / len(error_valid))
+    error_train = [error_train[i] for i in range(0, len(error_train), num)]
+    acc_train = [acc_train[i] for i in range(0, len(acc_train), num)]
+    plot_trend([error_train, error_valid, error_test],
+               data_title="torch_loss_2-4-05", y_label="Loss")
+    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-4-05")
 
 
 if __name__ == "__main__":
@@ -169,7 +222,12 @@ if __name__ == "__main__":
 
     for hidden_size in d2:
         train_numpy_model(hidden_size)
+        m = linearModel(d1, hidden_size, 10, [relu, softmax], CE, gradCE)
+        # training stuff
 
     y = np.random.random((5,))
     y_hat = np.random.random((5,))
     train_torch_model()
+
+
+

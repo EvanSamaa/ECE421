@@ -132,7 +132,7 @@ def compute_accuracy(W, b, x, y):
 
 def plot_trend(list_of_data, data_names=["Train", "Validation", "Test"], data_title="Accuracy", y_label="Accuracy"):
     x_axis = np.arange(len(list_of_data[0]))
-    for data, name in zip(list_of_data, data_names):
+    for data, name in zip(list_of_data, data_names):g
         plt.plot(x_axis, np.array(data), label=name)
     # plt.title(data_title)
     plt.xlabel("Epochs")
