@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-from model import linearModel
+from model import LinearModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
@@ -73,7 +73,10 @@ def computeLayer(x, W, b):
 def CE(target, prediction):
 
     # Cross Entropy loss for target and prediction
-    loss = (-1 / target.shape[0]) * np.sum(target * np.log(prediction))
+    loss = (-1 / target.shape[0]) * np.sum(target[np.where(target==1)] * np.log(prediction[np.where(target==1)]))
+    if np.isnan(loss) or np.isinf(loss):
+        print(prediction,target)
+        1/0
     return loss
 
 
@@ -143,19 +146,30 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             optimizer.step()
 
 
-
-
-
+def train_numpy_model(hidden_dim,epoch=200):
+    trainData, validData, testData, trainTarget, validTarget, testTarget=loadData()
+    trainTarget,validTarget,testTarget=convertOneHot(trainTarget,validTarget,testTarget)
+    model = LinearModel(trainData.shape[1]*trainData.shape[2], hidden_dim, 10, [relu, softmax], CE, gradCE)
+    acc=np.zeros((epoch,trainData.shape[0]))
+    for i in range(epoch):
+        loss=0
+        for j in range(trainData.shape[0]):
+            input=trainData[j].reshape(-1,)
+            label=trainTarget[j]
+            prediction=model.forward(input)
+            #print(prediction.reshape(-1,))
+            model.loss_backward(label)
+            loss+=model.compute_loss(trainTarget[j], prediction)
+        print(i,loss/trainData.shape[0])
 
 
 if __name__ == "__main__":
-    d1 = #input size
-    d2 = [100,500,2000]
+    d2 = [2000]
+    epoch=100
+
     for hidden_size in d2:
-        m = linearModel(d1, hidden_size, 10, [relu,softmax], CE, gradCE)
-        #training stuff
+        train_numpy_model(hidden_size)
 
     y = np.random.random((5,))
     y_hat = np.random.random((5,))
-
     train_torch_model()
