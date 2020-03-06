@@ -84,7 +84,9 @@ def gradCE(y, s):
     x = softmax(s)
 
     # Construct derivative matrix
-    A = -np.dot(np.transpose(x), x) + np.diag(x)
+
+    A = -np.dot(np.transpose(x), x) + np.diag(sum(x))
+    
     grad = -np.dot(y / x, A)
     return grad
 
@@ -235,10 +237,11 @@ def train_numpy_model(hidden_dim, epochs=200):
 
         # Backward Step:
         grad_loss = gradCE(trainTarget_one_hot, s)
-        grad_W_outer = np.dot(np.transpose(X_hidden), grad_loss)
-        grad_b_outer = np.transpose(sum(grad_loss)).reshape((K, 1))
-        grad_W_hidden = np.dot(np.transpose(trainData), relu(computeLayer(trainData, W_hidden, b_hidden)) * np.dot(grad_loss, np.transpose(W_outer)))
-        grad_b_hidden = sum(relu(computeLayer(trainData, W_hidden, b_hidden)) * np.dot(grad_loss, np.transpose(W_outer))).reshape(hidden_dim, 1)
+        grad_W_outer = np.dot(np.transpose(X_hidden), grad_loss)/10000
+        grad_b_outer = np.transpose(sum(grad_loss)).reshape((K, 1))/10000
+        grad_W_hidden = np.dot(np.transpose(trainData), relu(computeLayer(trainData, W_hidden, b_hidden)) * np.dot(grad_loss, np.transpose(W_outer)))/10000
+        grad_b_hidden = sum(relu(computeLayer(trainData, W_hidden, b_hidden)) * np.dot(grad_loss, np.transpose(W_outer))).reshape(hidden_dim, 1)/10000
+ 
 
         # Update Parameters
         v_W_outer = gamma * v_W_outer + alpha * grad_W_outer
