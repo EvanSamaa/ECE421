@@ -298,7 +298,7 @@ def train_numpy_model(hidden_dim, epochs=200):
     plt.show()
 
 if __name__ == "__main__":
-    hidden_size = 2000
+    hidden_size = 100
     epoch = 200
 
     train_numpy_model(hidden_size)
