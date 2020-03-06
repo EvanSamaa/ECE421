@@ -67,7 +67,7 @@ def softmax(s):
 def computeLayer(x, W, b):
 
     # Product of layer (Note activation function still needs to be applied)
-    s = np.dot(W, x) + b
+    s = np.dot(x, W) + np.transpose(b)
     return s
 
 
@@ -84,14 +84,19 @@ def gradCE(y, s):
     x = softmax(s)
 
     # Construct derivative matrix
-    A = -np.outer(x, x) + np.diag(x)
-    grad = -np.dot(A, y / x)
-
+    A = -np.dot(np.transpose(x), x) + np.diag(x)
+    grad = -np.dot(y / x, A)
     return grad
+
+
 def evaluate_accuracy(y_hat, y):
+
+    y_hat = torch.tensor(y_hat)
     y_hat = torch.argmax(y_hat, dim=1)
+    y_hat = np.array(y_hat)
     accuracy = np.where(y_hat == y, 1, 0).sum()
-    return(accuracy/y.size()[0])
+    return(accuracy/y.shape[0])
+
 
 class Cnn_model(torch.nn.Module):
     def __init__(self):
@@ -174,13 +179,113 @@ def train_torch_model(lr = 0.0001, epoch = 50):
             validation_output = cnn(change_shape_and_add_channel(validData))
             test_output = cnn(change_shape_and_add_channel(testData))
 
+def forward(X, W_outer, b_outer, W_hidden, b_hidden):
+    X = computeLayer(X, W_hidden, b_hidden)
+    X = relu(X)
+    X = computeLayer(X, W_outer, b_outer)
+    return X
+
+def train_numpy_model(hidden_dim, epochs=200):
+    trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+    trainTarget_one_hot, validTarget_one_hot, testTarget_one_hot = convertOneHot(trainTarget,validTarget,testTarget)
+    trainData = trainData.reshape(-1, 28 * 28)
+    validData = validData.reshape(-1, 28 * 28)
+    testData = testData.reshape(-1, 28 * 28)
+
+    d = trainData.shape[1]
+    
+    loss = [0] * epochs
+    loss_valid = [0] * epochs
+    loss_test = [0] * epochs
+    accuracy = [0] * epochs
+    accuracy_valid = [0] * epochs
+    accuracy_test = [0] * epochs
+
+    # Initialize Hyperparameters
+    gamma = 0.99
+    alpha = 0.00001
+
+    # Initialize Weights
+    d1 = trainData.shape[1]
+    d2 = hidden_dim
+    K = 10
+
+    W_hidden = np.random.randn(d1, d2) * 2 / (d1 + d2)
+    v_W_hidden = np.ones((d1, d2)) * 0.00001
+    W_outer = np.random.randn(d2, K) * 2 / (d2 + K)
+    v_W_outer = np.ones((d2, K)) * 0.00001
+    b_hidden = np.random.randn(d2, 1) * 2 / (d2 + 1)
+    v_b_hidden = np.ones((d2, 1)) * 0.00001
+    b_outer = np.random.randn(K, 1) * 2 / (K + 1)
+    v_b_outer = np.ones((K, 1)) * 0.00001
+
+    for epoch in range(epochs):
+
+        # Forward Step:
+        s_0 = computeLayer(trainData, W_hidden, b_hidden)
+        X_hidden = relu(s_0)
+        s = computeLayer(X_hidden, W_outer, b_outer)
+
+        s_valid = forward(validData, W_outer, b_outer, W_hidden, b_hidden)
+        s_test = forward(testData, W_outer, b_outer, W_hidden, b_hidden)
+
+        prediction = softmax(s)
+        prediction_valid = softmax(s_valid)
+        prediction_test = softmax(s_test)
+
+        # Backward Step:
+        grad_loss = gradCE(trainTarget_one_hot, s)
+        grad_W_outer = np.dot(np.transpose(X_hidden), grad_loss)
+        grad_b_outer = np.transpose(sum(grad_loss)).reshape((K, 1))
+        grad_W_hidden = np.dot(np.transpose(trainData), relu(computeLayer(trainData, W_hidden, b_hidden)) * np.dot(grad_loss, np.transpose(W_outer)))
+        grad_b_hidden = sum(relu(computeLayer(trainData, W_hidden, b_hidden)) * np.dot(grad_loss, np.transpose(W_outer))).reshape(hidden_dim, 1)
+
+        # Update Parameters
+        v_W_outer = gamma * v_W_outer + alpha * grad_W_outer
+        W_outer -= v_W_outer
+        v_b_outer = gamma * v_b_outer + alpha * grad_b_outer
+        b_outer -= v_b_outer
+        v_W_hidden = gamma * v_W_hidden + alpha * grad_W_hidden
+        W_hidden -= v_W_hidden
+        v_b_hidden = gamma * v_b_hidden + alpha * grad_b_hidden
+        b_hidden -= v_b_hidden
+
+        loss[epoch] = CE(trainTarget_one_hot, prediction)
+        loss_valid[epoch] = CE(validTarget_one_hot, prediction_valid)
+        loss_test[epoch] = CE(testTarget_one_hot, prediction_test)
+
+        accuracy[epoch] = evaluate_accuracy(prediction, trainTarget)
+        accuracy_valid[epoch] = evaluate_accuracy(prediction_valid, validTarget)
+        accuracy_test[epoch] = evaluate_accuracy(prediction_test, testTarget)
+
+        print()
+        print('EPOCH:', epoch)
+        print('TRAINING:')
+        print('    LOSS:', loss[epoch])
+        print('    ACC:', accuracy[epoch])
+        print('VALIDATION:')
+        print('    LOSS:', loss_valid[epoch])
+        print('    ACC:', accuracy_valid[epoch])
+        print('TESTING:')
+        print('    LOSS:', loss_test[epoch])
+        print('    ACC:', accuracy_test[epoch])
+
+
+
+
+"""
 def train_numpy_model(hidden_dim,epoch=200):
     trainData, validData, testData, trainTarget, validTarget, testTarget=loadData()
+    loss_func = CE
     trainTarget,validTarget,testTarget=convertOneHot(trainTarget,validTarget,testTarget)
     model = LinearModel(trainData.shape[1]*trainData.shape[2], hidden_dim, 10, [relu, softmax], CE, gradCE)
-    acc=np.zeros((epoch,trainData.shape[0]))
+    acc = np.zeros((epoch,trainData.shape[0]))
     for i in range(epoch):
         loss=0
+        error_valid = []
+        error_test = []
+        acc_valid = []
+        acc_test = []
         for j in range(trainData.shape[0]):
             input=trainData[j].reshape(-1,)
             label=trainTarget[j]
@@ -188,7 +293,7 @@ def train_numpy_model(hidden_dim,epoch=200):
             #print(prediction.reshape(-1,))
             model.loss_backward(label)
             loss+=model.compute_loss(trainTarget[j], prediction)
-        print(i,loss/trainData.shape[0])
+            print(i,loss/trainData.shape[0])
             if not torch.cuda.is_available():
                 error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)).item())
                 error_test.append(loss_func(test_output, torch.LongTensor(testTarget)).item())
@@ -214,15 +319,15 @@ def train_numpy_model(hidden_dim,epoch=200):
     plot_trend([error_train, error_valid, error_test],
                data_title="torch_loss_2-4-05", y_label="Loss")
     plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-4-05")
-
+"""
 
 if __name__ == "__main__":
-    d2 = [2000]
-    epoch=100
+    d2 = [100]
+    epoch = 200
 
     for hidden_size in d2:
         train_numpy_model(hidden_size)
-        m = linearModel(d1, hidden_size, 10, [relu, softmax], CE, gradCE)
+        m = LinearModel(d1, hidden_size, 10, [relu, softmax], CE, gradCE)
         # training stuff
 
     y = np.random.random((5,))
