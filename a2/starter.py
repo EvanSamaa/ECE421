@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-from model import LinearModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
@@ -12,7 +11,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 def loadData():
     with np.load("notMNIST.npz") as data:
         Data, Target = data["images"], data["labels"]
-        np.random.seed(521)
+        np.random.seed(125)
         randIndx = np.arange(len(Data))
         np.random.shuffle(randIndx)
         Data = Data[randIndx] / 255.0
@@ -39,7 +38,7 @@ def convertOneHot(trainTarget, validTarget, testTarget):
 
 
 def shuffle(trainData, trainTarget):
-    np.random.seed(421)
+    np.random.seed(324)
     randIndx = np.arange(len(trainData))
     target = trainTarget
     np.random.shuffle(randIndx)
@@ -57,10 +56,10 @@ def relu(s):
 def softmax(s):
 
     # Subtract max element from input array to prevent exponential overflow
-    s = s - np.max(s)
+    s = s - (np.max(s, axis=1)).reshape(s.shape[0],1)
 
     # Softmax
-    x = np.exp(s) / np.sum(np.exp(s))
+    x = np.exp(s) / (np.sum(np.exp(s), axis=1)).reshape(s.shape[0],1)
     return x
 
 
@@ -83,13 +82,7 @@ def gradCE(y, s):
     # Find prediction
     x = softmax(s)
 
-    # Construct derivative matrix
-
-    A = -np.dot(np.transpose(x), x) + np.diag(sum(x))
-    
-    grad = -np.dot(y / x, A)
-    return grad
-
+    return x - y
 
 def evaluate_accuracy(y_hat, y):
 
@@ -204,7 +197,7 @@ def train_numpy_model(hidden_dim, epochs=200):
     accuracy_test = [0] * epochs
 
     # Initialize Hyperparameters
-    gamma = 0.99
+    gamma = 0.9
     alpha = 0.00001
 
     # Initialize Weights
@@ -237,11 +230,12 @@ def train_numpy_model(hidden_dim, epochs=200):
 
         # Backward Step:
         grad_loss = gradCE(trainTarget_one_hot, s)
-        grad_W_outer = np.dot(np.transpose(X_hidden), grad_loss)/10000
-        grad_b_outer = np.transpose(sum(grad_loss)).reshape((K, 1))/10000
-        grad_W_hidden = np.dot(np.transpose(trainData), relu(computeLayer(trainData, W_hidden, b_hidden)) * np.dot(grad_loss, np.transpose(W_outer)))/10000
-        grad_b_hidden = sum(relu(computeLayer(trainData, W_hidden, b_hidden)) * np.dot(grad_loss, np.transpose(W_outer))).reshape(hidden_dim, 1)/10000
- 
+        grad_W_outer = np.dot(np.transpose(X_hidden), grad_loss)
+        grad_b_outer = np.transpose(sum(grad_loss)).reshape(K, 1)
+        grad_W_hidden = np.dot(np.transpose(trainData), np.where(X_hidden > 0, 1, 0) * np.dot(grad_loss, np.transpose(W_outer))) 
+        grad_b_hidden = sum(np.where(X_hidden > 0, 1, 0) * np.dot(grad_loss, np.transpose(W_outer))).reshape(hidden_dim, 1)
+        
+
 
         # Update Parameters
         v_W_outer = gamma * v_W_outer + alpha * grad_W_outer
@@ -275,66 +269,39 @@ def train_numpy_model(hidden_dim, epochs=200):
 
 
 
+    print()
+    print('Final Training Accuracy:', round(accuracy[-1], 3))
+    print('Final Validation Accuracy:', round(accuracy_valid[-1], 3))
+    print('Final Testing Accuracy:', round(accuracy_test[-1], 3))
 
-"""
-def train_numpy_model(hidden_dim,epoch=200):
-    trainData, validData, testData, trainTarget, validTarget, testTarget=loadData()
-    loss_func = CE
-    trainTarget,validTarget,testTarget=convertOneHot(trainTarget,validTarget,testTarget)
-    model = LinearModel(trainData.shape[1]*trainData.shape[2], hidden_dim, 10, [relu, softmax], CE, gradCE)
-    acc = np.zeros((epoch,trainData.shape[0]))
-    for i in range(epoch):
-        loss=0
-        error_valid = []
-        error_test = []
-        acc_valid = []
-        acc_test = []
-        for j in range(trainData.shape[0]):
-            input=trainData[j].reshape(-1,)
-            label=trainTarget[j]
-            prediction=model.forward(input)
-            #print(prediction.reshape(-1,))
-            model.loss_backward(label)
-            loss+=model.compute_loss(trainTarget[j], prediction)
-            print(i,loss/trainData.shape[0])
-            if not torch.cuda.is_available():
-                error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget)).item())
-                error_test.append(loss_func(test_output, torch.LongTensor(testTarget)).item())
-                acc_valid.append(evaluate_accuracy(validation_output,torch.LongTensor(validTarget)))
-                acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget)))
-            else:
-                error_valid.append(loss_func(validation_output, torch.LongTensor(validTarget).cuda()).item())
-                error_test.append(loss_func(test_output, torch.LongTensor(testTarget).cuda()).item())
-                acc_valid.append(evaluate_accuracy(validation_output, torch.LongTensor(validTarget).cuda()))
-                acc_test.append(evaluate_accuracy(test_output, torch.LongTensor(testTarget).cuda()))
-            del validation_output, test_output
+    # Plot Losses and Accuracy
+    plot_epoch = [i for i in range(1, epochs + 1)]
+    plt.figure()
+    plt.plot(plot_epoch, loss, label='Training Loss')
+    plt.plot(plot_epoch, loss_valid, label='Validation Loss')
+    plt.plot(plot_epoch, loss_test, label='Testing Loss')
+    plt.title('Losses as Function of Epoch, Hidden Size = '+str(hidden_dim))
+    plt.ylabel("Loss")
+    plt.xlabel("Epoch")
+    plt.legend()
+    plt.show()
 
-    print("The final Training Accuracy is ", acc_train[-1])
-    print("The final Validation Accuracy is ", acc_valid[-1])
-    print("The final Testing Accuracy is ", acc_test[-1])
-
-    print("The final Training loss is ", error_train[-1])
-    print("The final Validation loss is ", error_valid[-1])
-    print("The final Testing loss is ", error_test[-1])
-    num = int(len(error_train) / len(error_valid))
-    error_train = [error_train[i] for i in range(0, len(error_train), num)]
-    acc_train = [acc_train[i] for i in range(0, len(acc_train), num)]
-    plot_trend([error_train, error_valid, error_test],
-               data_title="torch_loss_2-4-05", y_label="Loss")
-    plot_trend([acc_train, acc_valid, acc_test], data_title="torch_accuracy_2-4-05")
-"""
+    # Plot accuracy
+    plt.figure()
+    plt.plot(plot_epoch, accuracy, label='Training Accuracy')
+    plt.plot(plot_epoch, accuracy_valid, label='Validation Accuracy')
+    plt.plot(plot_epoch, accuracy_test, label='Testing Accuracy')
+    plt.title('Accuracy as Function of Epoch, Hidden Size = '+str(hidden_dim))
+    plt.ylabel("Accuracy")
+    plt.xlabel("Epoch")
+    plt.legend()
+    plt.show()
 
 if __name__ == "__main__":
-    d2 = [100]
+    hidden_size = 2000
     epoch = 200
 
-    for hidden_size in d2:
-        train_numpy_model(hidden_size)
-        m = LinearModel(d1, hidden_size, 10, [relu, softmax], CE, gradCE)
-        # training stuff
-
-    y = np.random.random((5,))
-    y_hat = np.random.random((5,))
+    train_numpy_model(hidden_size)
     train_torch_model()
 
 
