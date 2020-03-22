@@ -12,9 +12,13 @@ B = np.random.random((A, ))
 use A.dot(B) for dot product
 
  
-Edit this file https://www.overleaf.com/8958533229qjygrqkhywfn \n
+Edit this file https://www.overleaf.com/8958533229qjygrqkhywfn 
+for assignment 1
 
 Edit this file https://www.overleaf.com/1745191488fstcgyjqccqd
+for assignment 2
 
-for assignment 1
+Edit this file https://www.overleaf.com/2911262193kycqjzgsdnwc 
+for assignment 3
+
 
