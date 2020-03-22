@@ -43,12 +43,15 @@ def distanceFunc(X, MU):
     # Outputs
     # pair_dist: is the squared pairwise distance matrix (NxK)
     # TODO
-
     pair_dist = np.zeros((X.shape[0], MU.shape[0]))
     ones = np.ones((X.shape[0], 1))
     for i in range(0, MU.shape[0]):
+      # Calculate the difference between one center mu with all sample
       col = X - ones @ MU[i, :].reshape((MU[i, :].shape[0], 1)).T
+      # find the norm
       pair_dist[:, i] = np.linalg.norm(col, axis = 1)
+    # square the norm since the requirement calls for squared distance
+    pair_dist = np.multiply(pair_dist, pair_dist)
     return pair_dist
 
 # for plotting
@@ -64,26 +67,34 @@ def plot_losses(loss_list, label_list, save_name = "no_name.png"):
   plt.savefig(save_name)
 
 def one_K_cluster(x_matrix, k = 3):
+
   data = x_matrix
   num_of_epochs = 100
+
   # to initialize MU
   avg = torch.zeros((k, data.shape[1]))
   std = torch.ones(k, data.shape[1])
   MU = torch.normal(avg, std)
   MU.requires_grad = True
+
+  # change data to a tensor
   data = torch.tensor(data)
-  distance_func_torch(data, MU)
+
+  # set up optimizer
   optimizer = torch.optim.Adam([{'params': MU, 'lr': 0.1, 'betas': (0.9, 0.99), 'eps': 1 * 10 ** -5}])
 
   losses = []
   for epoch in range(0, num_of_epochs):
-    optimizer.zero_grad()
-    loss = distanceLossFunction(data, MU)
-    loss.backward()
-    optimizer.step()
+    optimizer.zero_grad() # elimiate the gradient from last iteration
+    loss = distanceLossFunction(data, MU) # calculate loss
+    loss.backward() # backprop gradient
+    optimizer.step() # update MU
     losses.append(loss.item())
   # plot_losses([losses], ["K = " + str(k)], save_name="1_1_loss")
   return MU
+
+
+
 # return a (N, 1) array that shows which cluster k the data belongs to
 def calculateOwnerShipPercentage(X, MU):
   k = MU.shape[0]
@@ -126,7 +137,11 @@ if __name__ == "__main__":
   # clusters = []
   # for j in range (1, 6):
   #   clusters.append(one_K_cluster(data, k=j))
-  k = 1
-  mu = one_K_cluster(data, k).detach().numpy()
-  ownership = calculateOwnerShipPercentage(data, mu)
-  plot_scatter(data, ownership, mu, k)
+  for k in range (1, 6):
+    plt.clf()
+    plt.cla()
+    mu = one_K_cluster(data, k).detach().numpy()
+    loss = distanceLossFunction(torch.tensor(val_data), torch.tensor(mu))
+    print(loss)
+    ownership = calculateOwnerShipPercentage(val_data, mu)
+    plot_scatter(val_data, ownership, mu, k)
