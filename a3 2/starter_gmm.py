@@ -11,12 +11,12 @@ data = np.load('data2D.npy')
 
 # For Validation set
 if is_valid:
-  valid_batch = int(num_pts / 3.0)
-  np.random.seed(45689)
-  rnd_idx = np.arange(num_pts)
-  np.random.shuffle(rnd_idx)
- val_data = data[rnd_idx[:valid_batch]]
- data = data[rnd_idx[valid_batch:]]
+    valid_batch = int(num_pts / 3.0)
+    np.random.seed(45689)
+    rnd_idx = np.arange(num_pts)
+    np.random.shuffle(rnd_idx)
+    val_data = data[rnd_idx[:valid_batch]]
+    data = data[rnd_idx[valid_batch:]]
 
 # Distance function for GMM
 def distanceFunc(X, MU):
