@@ -232,10 +232,10 @@ def train_numpy_model(hidden_dim, epochs=200):
         grad_loss = gradCE(trainTarget_one_hot, s)
         grad_W_outer = np.dot(np.transpose(X_hidden), grad_loss)
         grad_b_outer = np.transpose(sum(grad_loss)).reshape(K, 1)
+        print(grad_loss.shape)
         grad_W_hidden = np.dot(np.transpose(trainData), np.where(X_hidden > 0, 1, 0) * np.dot(grad_loss, np.transpose(W_outer))) 
         grad_b_hidden = sum(np.where(X_hidden > 0, 1, 0) * np.dot(grad_loss, np.transpose(W_outer))).reshape(hidden_dim, 1)
         
-
 
         # Update Parameters
         v_W_outer = gamma * v_W_outer + alpha * grad_W_outer
