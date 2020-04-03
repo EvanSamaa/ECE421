@@ -15,6 +15,7 @@ is_valid = True
 if is_valid:
     valid_batch = int(num_pts / 3.0)
     np.random.seed(45689)
+    torch.manual_seed(0)
     rnd_idx = np.arange(num_pts)
     np.random.shuffle(rnd_idx)
     val_data = data[rnd_idx[:valid_batch]]
@@ -123,7 +124,7 @@ def one_K_cluster(x_matrix, k=3):
     data = x_matrix
     data = torch.Tensor(data)
 
-    num_of_epochs = 100
+    num_of_epochs = 250
 
     # to initialize MU
     mu_avg = torch.zeros((k, data.shape[1]))
