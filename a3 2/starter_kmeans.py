@@ -6,11 +6,11 @@ import torch
 
 # Loading data
 data = np.load('data2D.npy')
-#data = np.load('data100D.npy')
+data = np.load('data100D.npy')
 [num_pts, dim] = np.shape(data)
 
 # For Validation set
-is_valid = False
+is_valid = True
 if is_valid:
   valid_batch = int(num_pts / 3.0)
   np.random.seed(45689)
@@ -137,11 +137,15 @@ if __name__ == "__main__":
   # clusters = []
   # for j in range (1, 6):
   #   clusters.append(one_K_cluster(data, k=j))
-  for k in range (1, 6):
+  val_loss = []
+  for k in [5, 10, 15, 20, 30]:
+  # for k in range (1, 6):
     plt.clf()
     plt.cla()
     mu = one_K_cluster(data, k).detach().numpy()
     loss = distanceLossFunction(torch.tensor(val_data), torch.tensor(mu))
-    print(loss)
+    val_loss.append(loss)
     ownership = calculateOwnerShipPercentage(val_data, mu)
     plot_scatter(val_data, ownership, mu, k)
+  
+  print("validation loss", val_loss)

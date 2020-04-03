@@ -21,16 +21,6 @@ if is_valid:
     val_data = data[rnd_idx[:valid_batch]]
     data = data[rnd_idx[valid_batch:]]
 
-def softmax(s):
-
-    # Subtract max element from input array to prevent exponential overflow
-    s = s.numpy()
-    s = s - (np.max(s, axis=1)).reshape(s.shape[0],1)
-
-    # Softmax
-    x = np.exp(s) / (np.sum(np.exp(s), axis=1)).reshape(s.shape[0],1)
-    x = torch.tensor(x)
-    return x
 
 """
 # Distance function for GMM
@@ -47,6 +37,7 @@ def distanceFunc(X, MU):
     return z
 """
 
+
 def distanceFunc(X, MU):
     # Inputs
     # X: is an NxD matrix (N observations and D dimensions)
@@ -57,13 +48,14 @@ def distanceFunc(X, MU):
     pair_dist = np.zeros((X.shape[0], MU.shape[0]))
     ones = np.ones((X.shape[0], 1))
     for i in range(0, MU.shape[0]):
-      # Calculate the difference between one center mu with all sample
-      col = X - ones @ MU[i, :].reshape((MU[i, :].shape[0], 1)).T
-      # find the norm
-      pair_dist[:, i] = np.linalg.norm(col, axis = 1)
+        # Calculate the difference between one center mu with all sample
+        col = X - ones @ MU[i, :].reshape((MU[i, :].shape[0], 1)).T
+        # find the norm
+        pair_dist[:, i] = np.linalg.norm(col, axis=1)
     # square the norm since the requirement calls for squared distance
     pair_dist = np.multiply(pair_dist, pair_dist)
     return pair_dist
+
 
 def distance_func_torch(X, MU):
   pair_dist = torch.zeros((X.size()[0], MU.size()[0]))
@@ -72,7 +64,7 @@ def distance_func_torch(X, MU):
     col = X - torch.mm(ones, MU[i, :].reshape((MU[i, :].size()[0], 1)).T)
     pair_dist[:, i] = col.norm(dim = 1)
   return pair_dist
-
+  
 
 def log_GaussPDF(X, mu, sigma):
     # Inputs
@@ -83,8 +75,8 @@ def log_GaussPDF(X, mu, sigma):
     # log Gaussian PDF N X K
     k = mu.shape[0]
     z = distance_func_torch(X, mu)
-    log_gauss = torch.add(-X.shape[1] / 2 * np.log(2 * np.pi), - k / 2 * sigma)
-    log_gauss = torch.add(log_gauss.T, - 0.5 * torch.mul(z, (1 / torch.exp(sigma)).T))   
+    log_gauss = torch.add(-X.shape[1] / 2 * np.log(2 * np.pi), -k / 2 * sigma)
+    log_gauss = torch.add(log_gauss.T, -0.5 * torch.mul(z * z, (1 / torch.exp(sigma)).T))
     return log_gauss
 
 
@@ -100,8 +92,8 @@ def log_posterior(log_PDF, log_pi):
     # denominator = torch.sum(torch.exp(post), dim=1)
     # post = torch.add(post.T, - torch.log(denominator))
     # post = post.T
-    # print(torch.sum(torch.exp(log_pi.T), dim=1))
     return post
+
 
 def posterior_loss(X, mu, sigma, log_pi):
     """
@@ -112,12 +104,14 @@ def posterior_loss(X, mu, sigma, log_pi):
     log_PDF = log_GaussPDF(X, mu, sigma)
     log_post = log_posterior(log_PDF, log_pi)
 
-    loss = torch.exp(log_post)
-    loss = torch.sum(loss, dim=1)
-    loss = torch.log(loss)
+    loss = torch.logsumexp(log_post, dim=1)
+    # loss = torch.exp(log_post)
+    # loss = torch.sum(loss, dim=1)
+    # loss = torch.log(loss)
     loss = torch.sum(loss)
-    loss = - loss
-    return loss 
+    loss = -loss
+    return loss
+
 
 def one_K_cluster(x_matrix, k=3):
 
@@ -159,6 +153,7 @@ def one_K_cluster(x_matrix, k=3):
         log_pi = torch.log(pi)
         log_pi.requires_grad = True
         """
+        # print(torch.sum(torch.exp(logsoftmax(torch.exp(log_pi)))))
         optimizer.zero_grad()  # eliminate the gradient from last iteration
         loss = posterior_loss(data, MU, sigma, log_pi)
         loss.backward()  # backprop gradient
@@ -166,7 +161,7 @@ def one_K_cluster(x_matrix, k=3):
         optimizer.step()  # update
         losses.append(loss.item())
     # plot_losses([losses], ["K = " + str(k)], save_name="1_1_loss")
-    
+
     return [MU, sigma, log_pi]
 
 
@@ -174,7 +169,6 @@ def calculateOwnerShipPercentage(X, MU, sigma, log_pi):
     X = torch.tensor(X)
     k = MU.shape[0]
     gaussPDF = log_GaussPDF(X, MU, sigma)
-    log_pi = torch.tensor(log_pi)
     log_post = log_posterior(gaussPDF, log_pi)
     log_post = log_post.detach().numpy()
     ownership = np.argmin(-log_post, axis=1)
@@ -183,10 +177,6 @@ def calculateOwnerShipPercentage(X, MU, sigma, log_pi):
         percentages[item] = percentages[item] + 1
     percentages = percentages / percentages.sum()
 
-    print("X", X)
-    print("MU", MU)
-    print("sigma", torch.exp(sigma))
-    print("pi", torch.exp(logsoftmax(torch.exp(log_pi))))
     print(percentages)
     return ownership
 
@@ -215,13 +205,22 @@ def plot_scatter(x, ownership, mu, k):
 
 
 if __name__ == "__main__":
-
+    val_loss = []
     for k in range(1, 6):
+    # for k in [5, 10, 15, 20, 30]:
         plt.clf()
         plt.cla()
         [mu, sigma, log_pi] = one_K_cluster(data, k)
         # sigma = sigma.detach().numpy()
         # log_pi = log_pi.detach().numpy()
+        val_data = torch.Tensor(val_data)
+        loss = posterior_loss(val_data, mu, sigma, log_pi)
+        val_loss.append(loss)
         ownership = calculateOwnerShipPercentage(val_data, mu, sigma, log_pi)
         mu = mu.detach().numpy()
         plot_scatter(val_data, ownership, mu, k)
+
+    print("validation loss", val_loss)
+
+    # print(distanceFunc(data, mu))
+    # print(distance_func_torch(torch.Tensor(data), torch.Tensor(mu)))
