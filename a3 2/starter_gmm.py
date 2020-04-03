@@ -8,6 +8,8 @@ data = np.load("data100D.npy")
 data = np.load("data2D.npy")
 [num_pts, dim] = np.shape(data)
 
+logsoftmax = torch.nn.LogSoftmax(dim=0)
+
 # For Validation set
 is_valid = True
 if is_valid:
@@ -60,6 +62,7 @@ def distanceFunc(X, MU):
         col = X - ones @ MU[i, :].reshape((MU[i, :].shape[0], 1)).T
         # find the norm
         pair_dist[:, i] = np.linalg.norm(col, axis = 1)
+    pair_dist = np.multiply(pair_dist, pair_dist)
     return pair_dist
 
 
@@ -73,42 +76,46 @@ def log_GaussPDF(X, mu, sigma):
     z = distanceFunc(X, mu)
     sigma = torch.Tensor(sigma)
     sigma = sigma.detach().numpy()
-    log_gauss = np.add(np.log(1 / ((2 * np.pi)**(X.shape[1] / 2) * (np.sum(np.exp(sigma)))**(0.5) )), - 0.5 * np.multiply(z * z, (1 / np.exp(sigma)).T))
-    log_gauss = log_gauss
-
-    """
-    z = - z * z / (2 * sigma.T * np.ones((X.shape[0], mu.shape[0])).T)
-    log_gauss = -(z + np.log(1 / (2 * np.pi * sigma)))
-    """
-
+    log_gauss = np.add(-X.shape[1] / 2 * np.log(2 * np.pi) - 0.5 * np.log(np.prod(np.exp(sigma))), - 0.5 * np.multiply(z, (1 / np.exp(sigma)).T))
     return torch.Tensor(log_gauss)
 
 
 def log_posterior(log_PDF, log_pi):
-    temp = torch.exp(log_PDF)
-    temp = torch.sum(temp, 1).unsqueeze(1)
-    temp = torch.log(temp)
-    post = torch.add(log_PDF, log_pi.T)
-    post = torch.add(post, -temp)
-    return post
     # Input
     # log_PDF: log Gaussian PDF N X K
     # log_pi: K X 1
 
     # Outputs
     # log_post: N X K
+    real_log_pi = logsoftmax(torch.exp(log_pi))
+    post = torch.add(log_PDF, real_log_pi.T)
+    # denominator = torch.sum(torch.exp(post), dim=1)
+    # post = torch.add(post.T, - torch.log(denominator))
+    # post = post.T
+    # print(torch.sum(torch.exp(log_pi.T), dim=1))
+    return post
 
-def posterior_loss(log_posterior):
-    loss = torch.exp(log_posterior)
-    loss = torch.sum(log_posterior, dim=1)
-    loss = torch.log(log_posterior)
-    loss = torch.sum(log_posterior)
-    return loss
+def posterior_loss(X, mu, sigma, log_pi):
+    """
+    log_PDF = log_GaussPDF(X, mu, sigma)
+    loss = torch.add(log_PDF, log_pi.T)
+    loss = - torch.sum(loss)
+    """
+    log_PDF = log_GaussPDF(X, mu, sigma)
+    log_post = log_posterior(log_PDF, log_pi)
+    loss = torch.exp(log_post)
+    loss = torch.sum(loss, dim=1)
+    loss = torch.log(loss)
+    loss = torch.sum(loss)
+    loss = - loss
+    return loss 
 
 def one_K_cluster(x_matrix, k=3):
 
     data = x_matrix
-    num_of_epochs = 300
+    data = torch.Tensor(data)
+
+    num_of_epochs = 100
 
     # to initialize MU
     mu_avg = torch.zeros((k, data.shape[1]))
@@ -118,10 +125,10 @@ def one_K_cluster(x_matrix, k=3):
     s_avg = torch.zeros((k, 1))
     s_std = torch.ones(k, 1)
     sigma = torch.normal(s_avg, s_std)
-    sigma = torch.exp(sigma)
-    pi = torch.normal(s_avg, s_std)
-    pi = softmax(pi)
-    log_pi = torch.log(pi)
+    sigma = torch.ones(k, 1)
+    pi = torch.ones(k, 1)
+    pi = pi / k
+    log_pi = logsoftmax(pi)
 
     MU.requires_grad = True
     sigma.requires_grad = True
@@ -134,7 +141,7 @@ def one_K_cluster(x_matrix, k=3):
     optimizer = torch.optim.Adam(
         [
             {
-                "params": [MU, sigma, pi],
+                "params": [MU, sigma, log_pi],
                 "lr": 0.1,
                 "betas": (0.9, 0.99),
                 "eps": 1 * 10 ** -5,
@@ -144,35 +151,39 @@ def one_K_cluster(x_matrix, k=3):
 
     losses = []
     for epoch in range(0, num_of_epochs):
+        """
         pi = torch.exp(log_pi)
         pi = pi.detach()
         pi = softmax(pi)
         pi = torch.Tensor(pi)
         log_pi = torch.log(pi)
         log_pi.requires_grad = True
-        optimizer.zero_grad()  # elimiate the gradient from last iteration
-        gaussPDF = log_GaussPDF(data, MU, sigma)
-        log_post = log_posterior(gaussPDF, log_pi)  # calculate loss
-        loss = posterior_loss(log_post)
+        """
+        optimizer.zero_grad()  # eliminate the gradient from last iteration
+        loss = posterior_loss(data, MU, sigma, log_pi)
         loss.backward()  # backprop gradient
-        optimizer.step()  # update MU
+        optimizer.step()  # update
         losses.append(loss.item())
     # plot_losses([losses], ["K = " + str(k)], save_name="1_1_loss")
 
-    return [MU, sigma, pi]
+    return [MU, sigma, log_pi]
 
 
-def calculateOwnerShipPercentage(X, MU, sigma, pi):
+def calculateOwnerShipPercentage(X, MU, sigma, log_pi):
     k = MU.shape[0]
     gaussPDF = log_GaussPDF(X, MU, sigma)
-    pi = torch.tensor(pi)
-    log_post = log_posterior(gaussPDF, pi)
-    ownership = np.argmin(log_post, axis=1)
+    log_pi = torch.tensor(log_pi)
+    log_post = log_posterior(gaussPDF, log_pi)
+    ownership = np.argmin(-log_post, axis=1)
     percentages = np.zeros((k,))
     for item in ownership:
         percentages[item] = percentages[item] + 1
     percentages = percentages / percentages.sum()
 
+    print("X", X)
+    print("MU", MU)
+    print("sigma", np.exp(sigma))
+    print("pi", torch.exp(logsoftmax(torch.exp(log_pi))))
     print(percentages)
     return ownership
 
