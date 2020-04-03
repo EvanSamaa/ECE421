@@ -52,18 +52,25 @@ def distanceFunc(X, MU):
     # MU: is an KxD matrix (K means and D dimensions)
     # Outputs
     # pair_dist: is the squared pairwise distance matrix (NxK)
-    MU = torch.Tensor(MU)
-    MU = MU.detach().numpy()
-
+    # TODO
     pair_dist = np.zeros((X.shape[0], MU.shape[0]))
     ones = np.ones((X.shape[0], 1))
     for i in range(0, MU.shape[0]):
-        # Calculate the difference between one center mu with all sample
-        col = X - ones @ MU[i, :].reshape((MU[i, :].shape[0], 1)).T
-        # find the norm
-        pair_dist[:, i] = np.linalg.norm(col, axis = 1)
+      # Calculate the difference between one center mu with all sample
+      col = X - ones @ MU[i, :].reshape((MU[i, :].shape[0], 1)).T
+      # find the norm
+      pair_dist[:, i] = np.linalg.norm(col, axis = 1)
+    # square the norm since the requirement calls for squared distance
     pair_dist = np.multiply(pair_dist, pair_dist)
     return pair_dist
+
+def distance_func_torch(X, MU):
+  pair_dist = torch.zeros((X.size()[0], MU.size()[0]))
+  ones = torch.ones((X.size()[0], 1))
+  for i in range(0, MU.size()[0]):
+    col = X - torch.mm(ones, MU[i, :].reshape((MU[i, :].size()[0], 1)).T)
+    pair_dist[:, i] = col.norm(dim = 1)
+  return pair_dist
 
 
 def log_GaussPDF(X, mu, sigma):
@@ -73,11 +80,11 @@ def log_GaussPDF(X, mu, sigma):
     # sigma: K X 1
     # Outputs:
     # log Gaussian PDF N X K
-    z = distanceFunc(X, mu)
-    sigma = torch.Tensor(sigma)
-    sigma = sigma.detach().numpy()
-    log_gauss = np.add(-X.shape[1] / 2 * np.log(2 * np.pi) - 0.5 * np.log(np.prod(np.exp(sigma))), - 0.5 * np.multiply(z, (1 / np.exp(sigma)).T))
-    return torch.Tensor(log_gauss)
+    k = mu.shape[0]
+    z = distance_func_torch(X, mu)
+    log_gauss = torch.add(-X.shape[1] / 2 * np.log(2 * np.pi), - k / 2 * sigma)
+    log_gauss = torch.add(log_gauss.T, - 0.5 * torch.mul(z, (1 / torch.exp(sigma)).T))   
+    return log_gauss
 
 
 def log_posterior(log_PDF, log_pi):
@@ -103,6 +110,7 @@ def posterior_loss(X, mu, sigma, log_pi):
     """
     log_PDF = log_GaussPDF(X, mu, sigma)
     log_post = log_posterior(log_PDF, log_pi)
+
     loss = torch.exp(log_post)
     loss = torch.sum(loss, dim=1)
     loss = torch.log(loss)
@@ -138,16 +146,7 @@ def one_K_cluster(x_matrix, k=3):
     data = torch.tensor(data)
 
     # set up optimizer
-    optimizer = torch.optim.Adam(
-        [
-            {
-                "params": [MU, sigma, log_pi],
-                "lr": 0.1,
-                "betas": (0.9, 0.99),
-                "eps": 1 * 10 ** -5,
-            }
-        ]
-    )
+    optimizer = torch.optim.Adam([MU, sigma, log_pi], lr=0.1)
 
     losses = []
     for epoch in range(0, num_of_epochs):
@@ -162,18 +161,21 @@ def one_K_cluster(x_matrix, k=3):
         optimizer.zero_grad()  # eliminate the gradient from last iteration
         loss = posterior_loss(data, MU, sigma, log_pi)
         loss.backward()  # backprop gradient
+        print(loss)
         optimizer.step()  # update
         losses.append(loss.item())
     # plot_losses([losses], ["K = " + str(k)], save_name="1_1_loss")
-
+    
     return [MU, sigma, log_pi]
 
 
 def calculateOwnerShipPercentage(X, MU, sigma, log_pi):
+    X = torch.tensor(X)
     k = MU.shape[0]
     gaussPDF = log_GaussPDF(X, MU, sigma)
     log_pi = torch.tensor(log_pi)
     log_post = log_posterior(gaussPDF, log_pi)
+    log_post = log_post.detach().numpy()
     ownership = np.argmin(-log_post, axis=1)
     percentages = np.zeros((k,))
     for item in ownership:
@@ -182,7 +184,7 @@ def calculateOwnerShipPercentage(X, MU, sigma, log_pi):
 
     print("X", X)
     print("MU", MU)
-    print("sigma", np.exp(sigma))
+    print("sigma", torch.exp(sigma))
     print("pi", torch.exp(logsoftmax(torch.exp(log_pi))))
     print(percentages)
     return ownership
@@ -217,8 +219,8 @@ if __name__ == "__main__":
         plt.clf()
         plt.cla()
         [mu, sigma, log_pi] = one_K_cluster(data, k)
-        mu = mu.detach().numpy()
-        sigma = sigma.detach().numpy()
-        log_pi = log_pi.detach().numpy()
+        # sigma = sigma.detach().numpy()
+        # log_pi = log_pi.detach().numpy()
         ownership = calculateOwnerShipPercentage(val_data, mu, sigma, log_pi)
+        mu = mu.detach().numpy()
         plot_scatter(val_data, ownership, mu, k)
