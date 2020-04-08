@@ -88,6 +88,7 @@ def one_K_cluster(x_matrix, k = 3):
     optimizer.zero_grad() # elimiate the gradient from last iteration
     loss = distanceLossFunction(data, MU) # calculate loss
     loss.backward() # backprop gradient
+    print(loss)
     optimizer.step() # update MU
     losses.append(loss.item())
   # plot_losses([losses], ["K = " + str(k)], save_name="1_1_loss")

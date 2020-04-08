@@ -5,7 +5,7 @@ import torch
 
 # Loading data
 data = np.load("data100D.npy")
-data = np.load("data2D.npy")
+# data = np.load("data2D.npy")
 [num_pts, dim] = np.shape(data)
 
 logsoftmax = torch.nn.LogSoftmax(dim=0)
@@ -84,14 +84,10 @@ def log_posterior(log_PDF, log_pi):
     # Input
     # log_PDF: log Gaussian PDF N X K
     # log_pi: K X 1
-
     # Outputs
     # log_post: N X K
     real_log_pi = logsoftmax(torch.exp(log_pi))
     post = torch.add(log_PDF, real_log_pi.T)
-    # denominator = torch.sum(torch.exp(post), dim=1)
-    # post = torch.add(post.T, - torch.log(denominator))
-    # post = post.T
     return post
 
 
@@ -118,7 +114,7 @@ def one_K_cluster(x_matrix, k=3):
     data = x_matrix
     data = torch.Tensor(data)
 
-    num_of_epochs = 250
+    num_of_epochs = 100
 
     # to initialize MU
     mu_avg = torch.zeros((k, data.shape[1]))
@@ -160,9 +156,23 @@ def one_K_cluster(x_matrix, k=3):
         print(loss)
         optimizer.step()  # update
         losses.append(loss.item())
-    # plot_losses([losses], ["K = " + str(k)], save_name="1_1_loss")
+
+    #plot_losses([losses], ["K = " + str(k)], save_name="2_2_loss")
+    #print(MU, torch.exp(sigma), torch.exp(logsoftmax(torch.exp(log_pi))))
 
     return [MU, sigma, log_pi]
+
+# for plotting
+def plot_losses(loss_list, label_list, save_name = "no_name.png"):
+    for i in range(0, len(loss_list)):
+        loss = loss_list[i]
+        y = np.array(loss)
+        x = np.arange(0, y.shape[0])
+        plt.plot(x, y, label=label_list[i])
+    plt.legend()
+    plt.xlabel("Number of updates")
+    plt.ylabel("Loss")
+    plt.savefig(save_name)
 
 
 def calculateOwnerShipPercentage(X, MU, sigma, log_pi):
@@ -206,13 +216,11 @@ def plot_scatter(x, ownership, mu, k):
 
 if __name__ == "__main__":
     val_loss = []
-    for k in range(1, 6):
-    # for k in [5, 10, 15, 20, 30]:
+    # for k in range(1, 6):
+    for k in [5, 10, 15, 20, 30]:
         plt.clf()
         plt.cla()
         [mu, sigma, log_pi] = one_K_cluster(data, k)
-        # sigma = sigma.detach().numpy()
-        # log_pi = log_pi.detach().numpy()
         val_data = torch.Tensor(val_data)
         loss = posterior_loss(val_data, mu, sigma, log_pi)
         val_loss.append(loss)
@@ -221,6 +229,3 @@ if __name__ == "__main__":
         plot_scatter(val_data, ownership, mu, k)
 
     print("validation loss", val_loss)
-
-    # print(distanceFunc(data, mu))
-    # print(distance_func_torch(torch.Tensor(data), torch.Tensor(mu)))
